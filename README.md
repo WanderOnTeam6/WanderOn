@@ -4,16 +4,32 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
+0. Requirements
+
+Node ≥ 18 (match the project’s .nvmrc if present)
+
+Yarn (same major version the repo uses)
+
+Tip: Commit an .nvmrc and (if using Yarn 3+) .yarnrc.yml so others auto-match.
+
 1. Install dependencies
 
    ```bash
-   npm install
+   yarn install
    ```
 
 2. Start the app
 
    ```bash
-   npx expo start
+   yarn start
+   ```
+
+3. If got stuck when back to work on the project, recommend:
+   ```bash
+   yarn cache clean
+   rm -rf node_modules
+   yarn install
+   yarn expo start -c
    ```
 
 In the output, you'll find options to open the app in a

@@ -47,6 +47,8 @@ JWT_SECRET=dev-secret
    ```
    - Ensure port `4000` is **Public** in Codespaces (Ports panel).
    - Test at: `https://<your-4000-url>.app.github.dev/ping` → should return `{"ok":true}`.
+   - Making it public->
+     ![Backend Instructions](backend.png)
 
 2. **Frontend:**
    ```bash

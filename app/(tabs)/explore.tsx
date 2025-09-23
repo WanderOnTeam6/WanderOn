@@ -1,112 +1,112 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Collapsible } from '@/components/ui/collapsible';
 
-export default function TabTwoScreen() {
+export default function ExploreScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    // Parent establishes a stacking context
+    <ThemedView style={styles.page}>
+      {/* Background logo (stays visible, doesn't eat touches) */}
+      <Image
+        source={require('@/assets/images/Logo.png')}
+        style={styles.bgLogo}
+        contentFit="contain"
+        pointerEvents="none"
+      />
+
+      {/* Content layer */}
+      <ScrollView contentContainerStyle={styles.content}>
+        <ThemedText type="title" style={styles.title}>
+          WanderOn — Trip Planning & Expenses, Together
+        </ThemedText>
+
+        <ThemedText style={styles.lead}>
+          Plan trips with friends, keep every booking in one place, and split costs without
+          spreadsheets. WanderOn keeps your group in sync from first idea to final receipt.
+        </ThemedText>
+
+        <Section
+          title="Shared Itinerary Planners"
+          story="As a group traveler, I want to add itinerary items so everyone knows the plan."
+          usecase="Add flights, rentals, and activities; all members can view/edit and changes sync instantly."
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
+
+        <Section
+          title="AI Route Planning"
+          story="As a traveler, I want the app to suggest the best route so I can save time and visit more places without stress."
+          usecase="Enter your destinations and WanderOn generates an efficient path for you (and your group) to follow."
         />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+
+        <Section
+          title="Booking Integrated"
+          story="As a user, I want to add booking confirmations and have them scheduled automatically so everyone stays updated."
+          usecase="Forward confirmations → the app parses details → booking appears on your itinerary with reminders."
+        />
+
+        <Section
+          title="Expense Tracking & Splitting"
+          story="As a group traveler, I want to track expenses and quickly split fairly at the end."
+          usecase="Everyone can add shared transactions; WanderOn calculates who owes whom—no manual math."
+        />
+      </ScrollView>
+    </ThemedView>
+  );
+}
+
+function Section({ title, story, usecase }: { title: string; story: string; usecase: string }) {
+  return (
+    <Collapsible title={title}>
+      <ThemedText style={styles.subhead}>User story</ThemedText>
+      <ThemedText style={styles.body}>{story}</ThemedText>
+      <ThemedText style={styles.subhead}>Use case</ThemedText>
+      <ThemedText style={styles.body}>{usecase}</ThemedText>
+    </Collapsible>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  // Full-page container, creates a stacking context
+  page: {
+    flex: 1,
+    position: 'relative',
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+
+  // Background logo: centered, behind content, 60% opacity
+  bgLogo: {
+    position: 'absolute',
+    ...StyleSheet.absoluteFillObject, // covers the whole page
+    opacity: 0.6,
+    zIndex: 0, // behind content (but not negative, so it won't disappear)
+    // Center the logo within the page
+    width: undefined,
+    height: undefined,
+  },
+
+  // Content fills the whole page width with comfy padding
+  content: {
+    zIndex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 24,
+    paddingBottom: 48,
+  },
+
+  title: {
+    marginBottom: 8,
+  },
+  lead: {
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  subhead: {
+    marginTop: 6,
+    fontWeight: '600',
+  },
+  body: {
+    marginTop: 2,
+    marginBottom: 8,
+    lineHeight: 20,
   },
 });

@@ -1,7 +1,10 @@
 // lib/api.ts
 
 // Your Codespaces API base (strip trailing slash just in case)
-const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
+// const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
+// lib/api.ts
+export const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
+
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('token');

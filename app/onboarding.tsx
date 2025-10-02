@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+// app/onboarding.tsx
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import { Asset } from 'expo-asset';
 import OnboardingScreen from '../components/onboarding-screen';
 
 export default function OnboardingFlow() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isReady, setIsReady] = useState(false);
 
   const onboardingData = [
     {
@@ -24,6 +27,17 @@ export default function OnboardingFlow() {
     },
   ];
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const modules = onboardingData.map(s => s.backgroundImage);
+        await Promise.all(modules.map(m => Asset.fromModule(m).downloadAsync()));
+      } finally {
+        setIsReady(true);
+      }
+    })();
+  }, []);
+
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -35,6 +49,14 @@ export default function OnboardingFlow() {
   const handleSkip = () => {
     router.replace('/login');
   };
+
+  if (!isReady) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
 
   const currentScreen = onboardingData[currentIndex];
 
@@ -54,7 +76,5 @@ export default function OnboardingFlow() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
 });

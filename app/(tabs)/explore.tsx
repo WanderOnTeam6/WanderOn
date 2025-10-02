@@ -1,9 +1,9 @@
 import { Image } from 'expo-image';
-import { ScrollView, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
 
 export default function ExploreScreen() {
   return (
@@ -57,13 +57,24 @@ export default function ExploreScreen() {
 }
 
 function Section({ title, story, usecase }: { title: string; story: string; usecase: string }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   return (
-    <Collapsible title={title}>
-      <ThemedText style={styles.subhead}>User story</ThemedText>
-      <ThemedText style={styles.body}>{story}</ThemedText>
-      <ThemedText style={styles.subhead}>Use case</ThemedText>
-      <ThemedText style={styles.body}>{usecase}</ThemedText>
-    </Collapsible>
+    <ThemedView style={styles.sectionContainer}>
+      <TouchableOpacity onPress={() => setIsExpanded(!isExpanded)}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          {title} {isExpanded ? '▼' : '▶'}
+        </ThemedText>
+      </TouchableOpacity>
+      {isExpanded && (
+        <ThemedView style={styles.sectionContent}>
+          <ThemedText style={styles.subhead}>User story</ThemedText>
+          <ThemedText style={styles.body}>{story}</ThemedText>
+          <ThemedText style={styles.subhead}>Use case</ThemedText>
+          <ThemedText style={styles.body}>{usecase}</ThemedText>
+        </ThemedView>
+      )}
+    </ThemedView>
   );
 }
 
@@ -76,7 +87,6 @@ const styles = StyleSheet.create({
 
   // Background logo: centered, behind content, 60% opacity
   bgLogo: {
-    position: 'absolute',
     ...StyleSheet.absoluteFillObject, // covers the whole page
     opacity: 0.6,
     zIndex: 0, // behind content (but not negative, so it won't disappear)
@@ -99,6 +109,20 @@ const styles = StyleSheet.create({
   lead: {
     marginBottom: 16,
     lineHeight: 20,
+  },
+  sectionContainer: {
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  sectionTitle: {
+    padding: 12,
+    backgroundColor: '#f5f5f5',
+  },
+  sectionContent: {
+    padding: 12,
   },
   subhead: {
     marginTop: 6,

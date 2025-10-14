@@ -1,9 +1,15 @@
 // app/(tabs)/logged-in.tsx
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useEffect } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
+
 export default function LoggedInScreen() {
+    useEffect(() => {
+        console.log('Logged-in screen mounted');  // Add this line for debugging
+    }, []);  // Empty array ensures it runs only once on mount
+
     return (
         <ThemedView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -53,6 +59,8 @@ export default function LoggedInScreen() {
         </ThemedView>
     );
 }
+
+
 
 // Small presentational helper
 function Feature({

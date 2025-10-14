@@ -1,13 +1,10 @@
-// lib/api.ts
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Your Codespaces API base (strip trailing slash just in case)
-// const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
-// lib/api.ts
+// Keep the BASE URL as is, since it's used by other pages
 export const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
 
-
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = await getToken();  // Use the updated async getToken function
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -29,13 +26,28 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return data as T;
 }
 
-// Simple token helpers (web-only)
-export function setToken(token: string) {
-  localStorage.setItem('token', token);
+// Updated token helpers using AsyncStorage
+export async function setToken(token: string) {
+  try {
+    await AsyncStorage.setItem('token', token);
+  } catch (e) {
+    console.error('Error setting token:', e);
+  }
 }
-export function getToken() {
-  return localStorage.getItem('token');
+
+export async function getToken() {
+  try {
+    return await AsyncStorage.getItem('token');
+  } catch (e) {
+    console.error('Error getting token:', e);
+    return null;
+  }
 }
-export function clearToken() {
-  localStorage.removeItem('token');
+
+export async function clearToken() {
+  try {
+    await AsyncStorage.removeItem('token');
+  } catch (e) {
+    console.error('Error clearing token:', e);
+  }
 }

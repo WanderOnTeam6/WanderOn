@@ -1,4 +1,3 @@
-import { BASE, setToken } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -19,6 +18,8 @@ import {
 
 const { width } = Dimensions.get('window');
 
+import { BASE, setToken } from '@/lib/api';
+
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -32,10 +33,10 @@ export default function LoginScreen() {
         // Clear previous errors
         setEmailError('');
         setPasswordError('');
-        
+
         // Input validation with better messages
         let hasErrors = false;
-        
+
         if (!email) {
             setEmailError('Email is required');
             hasErrors = true;
@@ -47,16 +48,16 @@ export default function LoginScreen() {
                 hasErrors = true;
             }
         }
-        
+
         if (!password) {
             setPasswordError('Password is required');
             hasErrors = true;
         }
-        
+
         if (hasErrors) {
             return;
         }
-        
+
         setIsLoading(true);
         try {
             const res = await fetch(`${BASE}/auth/login`, {
@@ -65,7 +66,7 @@ export default function LoginScreen() {
                 body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
             });
             const data = await res.json().catch(() => ({}));
-            
+
             if (!res.ok) {
                 // Handle specific HTTP status codes
                 switch (res.status) {
@@ -86,27 +87,20 @@ export default function LoginScreen() {
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new Event('auth:changed'));
             }
-            
-            // Show success message before navigation
-            Alert.alert(
-                'Welcome!', 
-                'You have successfully signed in to WanderOn.',
-                [{ 
-                    text: 'Continue', 
-                    onPress: () => router.replace('/logged-in')
-                }]
-            );
+
+            // Direct navigation after successful login
+            router.replace('/logged-in');
         } catch (e: any) {
             // Network or other errors
             if (e.message.includes('fetch')) {
                 Alert.alert(
-                    'Connection Error', 
+                    'Connection Error',
                     'Unable to connect to the server. Please check your internet connection and try again.',
                     [{ text: 'OK' }]
                 );
             } else {
                 Alert.alert(
-                    'Sign In Failed', 
+                    'Sign In Failed',
                     e.message || 'An unexpected error occurred. Please try again.',
                     [{ text: 'OK' }]
                 );
@@ -118,157 +112,158 @@ export default function LoginScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
                 style={styles.keyboardAvoidingView}
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <ScrollView 
+                <ScrollView
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.content}>
-                {/* Logo */}
-                <View style={styles.logoContainer}>
-                    <Image
-                        source={require('@/assets/images/Logo.png')}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                </View>
-
-                {/* Welcome Text */}
-                <View style={styles.welcomeContainer}>
-                    <Text style={styles.welcomeTitle}>Welcome to WanderOn</Text>
-                    <Text style={styles.welcomeSubtitle}>Please choose your login option below</Text>
-                </View>
-
-                {/* Email Input */}
-                <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Email</Text>
-                    <TextInput
-                        style={[styles.input, emailError ? styles.inputError : null]}
-                        placeholder="Enter your email address"
-                        placeholderTextColor="#999"
-                        value={email}
-                        onChangeText={(text) => {
-                            setEmail(text);
-                            if (emailError) setEmailError(''); // Clear error on typing
-                        }}
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                    />
-                    {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-                </View>
-
-                {/* Password Input */}
-                <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Password</Text>
-                    <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
-                        <TextInput
-                            style={styles.passwordInput}
-                            placeholder="Enter your password"
-                            placeholderTextColor="#999"
-                            value={password}
-                            onChangeText={(text) => {
-                                setPassword(text);
-                                if (passwordError) setPasswordError(''); // Clear error on typing
-                            }}
-                            secureTextEntry={!showPassword}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-                        <TouchableOpacity
-                            style={styles.eyeIcon}
-                            onPress={() => setShowPassword(!showPassword)}
-                        >
-                            <Ionicons
-                                name={showPassword ? 'eye-off' : 'eye'}
-                                size={20}
-                                color="#666"
+                        {/* Logo */}
+                        <View style={styles.logoContainer}>
+                            <Image
+                                source={require('@/assets/images/Logo.png')}
+                                style={styles.logo}
+                                resizeMode="contain"
                             />
-                        </TouchableOpacity>
-                    </View>
-                    {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-                </View>
+                        </View>
 
-                {/* Forgot Password */}
-                <TouchableOpacity
-                    style={styles.forgotPassword}
-                    onPress={() => router.push('/forgot-password')}
-                >
-                    <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-                </TouchableOpacity>
+                        {/* Welcome Text */}
+                        <View style={styles.welcomeContainer}>
+                            <Text style={styles.welcomeTitle}>Welcome to WanderOn</Text>
+                            <Text style={styles.welcomeSubtitle}>Please choose your login option below</Text>
+                        </View>
 
-                {/* Login Button */}
-                <TouchableOpacity
-                    style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-                    onPress={handleLogin}
-                    disabled={isLoading}
-                    activeOpacity={0.8}
-                >
-                    <View style={styles.loginButtonContent}>
-                        {isLoading && (
-                            <View style={styles.loadingIndicator}>
-                                <Text style={styles.loadingDot}>●</Text>
-                                <Text style={styles.loadingDot}>●</Text>
-                                <Text style={styles.loadingDot}>●</Text>
+                        {/* Email Input */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>Email</Text>
+                            <TextInput
+                                style={[styles.input, emailError ? styles.inputError : null]}
+                                placeholder="Enter your email address"
+                                placeholderTextColor="#999"
+                                value={email}
+                                onChangeText={(text) => {
+                                    setEmail(text);
+                                    if (emailError) setEmailError(''); // Clear error on typing
+                                }}
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+                        </View>
+
+                        {/* Password Input */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>Password</Text>
+                            <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
+                                <TextInput
+                                    style={styles.passwordInput}
+                                    placeholder="Enter your password"
+                                    placeholderTextColor="#999"
+                                    value={password}
+                                    onChangeText={(text) => {
+                                        setPassword(text);
+                                        if (passwordError) setPasswordError(''); // Clear error on typing
+                                    }}
+                                    secureTextEntry={!showPassword}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                />
+                                <TouchableOpacity
+                                    style={styles.eyeIcon}
+                                    onPress={() => setShowPassword(!showPassword)}
+                                >
+                                    <Ionicons
+                                        name={showPassword ? 'eye-off' : 'eye'}
+                                        size={20}
+                                        color="#666"
+                                    />
+                                </TouchableOpacity>
                             </View>
-                        )}
-                        <Text style={styles.loginButtonText}>
-                            {isLoading ? 'Signing you in...' : 'Sign In'}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
+                            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+                        </View>
 
-                {/* Divider */}
-                <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>Or login with</Text>
-                    <View style={styles.dividerLine} />
-                </View>
+                        {/* Forgot Password */}
+                        <TouchableOpacity
+                            style={styles.forgotPassword}
+                            onPress={() => router.push('/forgot-password')}
+                        >
+                            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                        </TouchableOpacity>
 
-                {/* Social Login Buttons */}
-                <View style={styles.socialContainer}>
-                    <TouchableOpacity style={styles.socialButton}>
-                        <Ionicons name="logo-facebook" size={24} color="#4267B2" />
-                        <Text style={styles.socialButtonText}>Facebook</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.socialButton}>
-                        <Ionicons name="logo-google" size={24} color="#DB4437" />
-                        <Text style={styles.socialButtonText}>Gmail</Text>
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity style={styles.socialButton}>
-                        <Ionicons name="logo-apple" size={24} color="#000" />
-                        <Text style={styles.socialButtonText}>Apple</Text>
-                    </TouchableOpacity>
-                </View>
+                        {/* Login Button */}
+                        <TouchableOpacity
+                            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                            onPress={handleLogin}
+                            disabled={isLoading}
+                            activeOpacity={0.8}
+                        >
+                            <View style={styles.loginButtonContent}>
+                                {isLoading && (
+                                    <View style={styles.loadingIndicator}>
+                                        <Text style={styles.loadingDot}>●</Text>
+                                        <Text style={styles.loadingDot}>●</Text>
+                                        <Text style={styles.loadingDot}>●</Text>
+                                    </View>
+                                )}
+                                <Text style={styles.loginButtonText}>
+                                    {isLoading ? 'Signing you in...' : 'Sign In'}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
 
-                {/* Sign Up Link */}
-                <View style={styles.signupContainer}>
-                    <Text style={styles.signupText}>Don't have account on already? </Text>
-                    <TouchableOpacity 
-                        onPress={() => router.push('/signup')}
-                        activeOpacity={0.7}
-                        style={styles.signupLinkContainer}
-                        delayPressIn={0}
-                        delayPressOut={0}
-                        delayLongPress={500}
-                    >
-                        <Text style={styles.signupLink}>Create Account</Text>
-                    </TouchableOpacity>
-                </View>
+                        {/* Divider */}
+                        <View style={styles.divider}>
+                            <View style={styles.dividerLine} />
+                            <Text style={styles.dividerText}>Or login with</Text>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        {/* Social Login Buttons */}
+                        <View style={styles.socialContainer}>
+                            <TouchableOpacity style={styles.socialButton}>
+                                <Ionicons name="logo-facebook" size={24} color="#4267B2" />
+                                <Text style={styles.socialButtonText}>Facebook</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.socialButton}>
+                                <Ionicons name="logo-google" size={24} color="#DB4437" />
+                                <Text style={styles.socialButtonText}>Gmail</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.socialButton}>
+                                <Ionicons name="logo-apple" size={24} color="#000" />
+                                <Text style={styles.socialButtonText}>Apple</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Sign Up Link */}
+                        <View style={styles.signupContainer}>
+                            <Text style={styles.signupText}>Don't have account on already? </Text>
+                            <TouchableOpacity
+                                onPress={() => router.push('/signup')}
+                                activeOpacity={0.7}
+                                style={styles.signupLinkContainer}
+                                delayPressIn={0}
+                                delayPressOut={0}
+                                delayLongPress={500}
+                            >
+                                <Text style={styles.signupLink}>Create Account</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

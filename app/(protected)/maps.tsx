@@ -1,6 +1,8 @@
 // app/maps.tsx
-import { api } from "@/lib/api"; // uses your Authorization-bearing helper
+import { api, clearToken } from "@/lib/api"; // uses your Authorization-bearing helper
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 
 declare global { interface Window { google?: any } }
@@ -58,6 +60,43 @@ export default function MapsPage() {
         process.env.EXPO_PUBLIC_MAP_ID ||
         (Constants?.expoConfig?.extra as any)?.MAP_ID ||
         "DEMO_MAP_ID";
+
+    // Debug / Profile menu
+    const [userId, setUserId] = useState<string | null>(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const router = useRouter();
+
+    // Read logged-in user id once
+    useEffect(() => {
+        (async () => {
+            const storedId = await AsyncStorage.getItem("userId");
+            setUserId(storedId);
+            console.log("[DEBUG] Maps screen loaded, user ID:", storedId);
+        })();
+    }, []);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const onDocClick = (e: MouseEvent) => {
+            const t = e.target as HTMLElement | null;
+            if (!t) return;
+            if (!t.closest?.("#profile-menu") && !t.closest?.("#profile-avatar")) {
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener("click", onDocClick);
+        return () => document.removeEventListener("click", onDocClick);
+    }, []);
+
+    const onLogout = async () => {
+        console.log("[DEBUG] Logging out user:", userId);
+        try {
+            await clearToken();
+            await AsyncStorage.removeItem("userId");
+        } finally {
+            router.replace("/onboarding");
+        }
+    };
 
     // ---------- Google Maps boot ----------
     useEffect(() => {
@@ -278,11 +317,15 @@ export default function MapsPage() {
         }
         try {
             setSaving(true);
+            console.log("[DEBUG] Saving itinerary for user:", userId, {
+                itineraryId: itineraryId.trim(),
+                name: itineraryName,
+                items: itinerary,
+            });
             await saveItineraryItems(itineraryId.trim(), itinerary, itineraryName);
             // Optionally refresh list so counts/updatedAt update
             const list = await listItineraries();
             setAvailableIts(list);
-            // Optional: toast UI could go here
         } catch (e) {
             alert("Failed to save itinerary");
         } finally {
@@ -295,7 +338,21 @@ export default function MapsPage() {
         <div style={styles.page}>
             {/* Header */}
             <div style={styles.headerBar}>
-                <h1 style={styles.headerTitle}>Itinerary Builder</h1>
+                <div style={styles.headerLeft}>
+                    {/* Avatar (top-left) */}
+                    <button
+                        id="profile-avatar"
+                        onClick={() => setMenuOpen((v) => !v)}
+                        style={styles.avatarBtn}
+                        title={userId ? `User: ${userId}` : "Profile"}
+                    >
+                        <span style={styles.avatarText}>
+                            {(userId?.slice(-2) || "U").toUpperCase()}
+                        </span>
+                    </button>
+
+                    <h1 style={styles.headerTitle}>Itinerary Builder</h1>
+                </div>
 
                 {/* Itinerary controls (ID selector + Name + Save) */}
                 <div style={styles.controlsRow}>
@@ -339,6 +396,19 @@ export default function MapsPage() {
                         {saving ? "Saving…" : "Save"}
                     </button>
                 </div>
+
+                {/* Dropdown (under avatar) */}
+                {menuOpen && (
+                    <div id="profile-menu" style={styles.dropdownMenu}>
+                        <div style={styles.menuHeader}>
+                            <div style={{ fontSize: 12, color: "#6b7280" }}>Signed in</div>
+                            <div style={{ fontSize: 12, wordBreak: "break-all" }}>
+                                {userId || "unknown"}
+                            </div>
+                        </div>
+                        <button onClick={onLogout} style={styles.menuItem}>Log out</button>
+                    </div>
+                )}
             </div>
 
             {/* TOP: map + right panel */}
@@ -402,7 +472,11 @@ export default function MapsPage() {
                                 <div style={styles.empty}>No results yet.</div>
                             ) : (
                                 textResults.map((r, i) => (
-                                    <button key={r.place_id} style={styles.resultRow} onClick={() => fetchAndShowPlace(g!, r.place_id, map, marker, setCurrent)}>
+                                    <button
+                                        key={r.place_id}
+                                        style={styles.resultRow}
+                                        onClick={() => fetchAndShowPlace(g!, r.place_id, map, marker, setCurrent)}
+                                    >
                                         <span style={styles.resultIndex}>{i + 1}.</span>
                                         <span>
                                             <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -514,18 +588,50 @@ const styles: Record<string, React.CSSProperties> = {
 
     // header
     headerBar: {
+        position: "relative",
+        zIndex: 10,
         width: "100%",
         padding: "14px 16px",
         background: "#111827",
         color: "white",
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
     },
-    headerTitle: { fontSize: 18, fontWeight: 600, margin: 0, marginBottom: 10 },
+    headerLeft: { display: "flex", alignItems: "center", gap: 12 },
+    headerTitle: { fontSize: 18, fontWeight: 600, margin: 0, marginBottom: 0 },
+
+    // avatar + dropdown
+    avatarBtn: {
+        width: 36, height: 36, borderRadius: "50%",
+        border: "1px solid rgba(255,255,255,0.3)",
+        background: "linear-gradient(180deg,#f3f4f6,#d1d5db)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", padding: 0,
+    },
+    avatarText: { fontSize: 12, fontWeight: 700, color: "#111827" },
+    dropdownMenu: {
+        position: "absolute",
+        top: 56, left: 16, // under avatar, top-left
+        width: 220,
+        background: "white",
+        border: "1px solid #e5e7eb",
+        borderRadius: 10,
+        boxShadow: "0 12px 28px rgba(0,0,0,0.12)",
+        overflow: "hidden",
+    },
+    menuHeader: { padding: "10px 12px", borderBottom: "1px solid #eee", background: "#f9fafb" },
+    menuItem: {
+        width: "100%", textAlign: "left",
+        padding: "10px 12px", background: "white",
+        border: "none", cursor: "pointer", fontSize: 14,
+    },
+
+    // itinerary controls row (right side of header)
     controlsRow: {
         display: "flex",
         gap: 8,
         alignItems: "center",
         flexWrap: "wrap",
+        marginTop: 10,
     },
     label: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
     select: {

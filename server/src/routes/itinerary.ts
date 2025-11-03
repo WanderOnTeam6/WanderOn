@@ -93,4 +93,27 @@ router.put('/:itineraryId', requireAuth, async (req: any, res) => {
     res.json({ ok: true });
 });
 
+router.post('/', requireAuth, async (req, res) => {
+    const userId = req.userId;
+    const { items } = req.body;
+    console.log('[DEBUG] /itinerary POST — userId:', userId, 'items:', items);
+
+    try {
+        let doc = await UserItineraries.findOne({ userId });
+        if (!doc) {
+            doc = new UserItineraries({ userId, itineraries: [] });
+        }
+        const newItinerary = { itineraryId: new Types.ObjectId(), items };
+        doc.itineraries.push(newItinerary);
+        await doc.save();
+
+        console.log('[DEBUG] Itinerary saved successfully for user:', userId);
+        res.json({ success: true, itineraryId: newItinerary.itineraryId });
+    } catch (err) {
+        console.error('[DEBUG] Error saving itinerary for user:', userId, err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+
 export default router;

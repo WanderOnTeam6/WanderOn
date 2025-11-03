@@ -402,7 +402,7 @@ export default function MapsPage() {
                     <div id="profile-menu" style={styles.dropdownMenu}>
                         <div style={styles.menuHeader}>
                             <div style={{ fontSize: 12, color: "#6b7280" }}>Signed in</div>
-                            <div style={{ fontSize: 12, wordBreak: "break-all" }}>
+                            <div style={{ fontSize: 12, wordBreak: "break-all", color: "#111827" }}>
                                 {userId || "unknown"}
                             </div>
                         </div>

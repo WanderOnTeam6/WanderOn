@@ -16,7 +16,7 @@ export default function SignupSuccessScreen() {
     const router = useRouter();
 
     function handleExplore() {
-        router.replace('/(tabs)');
+        router.replace('/logged-in');
     }
 
     return (

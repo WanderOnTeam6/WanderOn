@@ -1,6 +1,8 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import { requireAuth } from './middleware/requireAuth';
 import { User } from './models/User';
+
 
 const router = express.Router();
 
@@ -79,6 +81,10 @@ router.post('/register', async (req, res) => {
     console.error('[REGISTER] error', err);
     return res.status(500).json({ error: err.message || 'Server error' });
   }
+});
+
+router.get('/me', requireAuth, (req, res) => {
+  return res.json(req.user); // { _id, email, name }
 });
 
 export default router;

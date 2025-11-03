@@ -1,13 +1,16 @@
 // app/maps.tsx
+import { api } from "@/lib/api"; // uses your Authorization-bearing helper
 import Constants from "expo-constants";
 import React, { useEffect, useRef, useState } from "react";
 
 declare global { interface Window { google?: any } }
 type G = typeof window.google;
 
-// Simple type for our UI list
+// Local types
 type Suggestion = { description: string; place_id: string };
 type TextResult = { place_id: string; name: string; address?: string; lat?: number; lng?: number };
+type ItineraryItem = { placeId: string; name?: string; address?: string; location?: { lat: number; lng: number } };
+type ItinerarySummary = { itineraryId: string; name: string; count?: number; updatedAt?: string };
 
 export default function MapsPage() {
     const mapRef = useRef<HTMLDivElement | null>(null);
@@ -32,14 +35,19 @@ export default function MapsPage() {
 
     // Current confirmed place (from Place.fetchFields)
     const [current, setCurrent] = useState<{
-        placeId: string;
-        name?: string;
-        address?: string;
-        location?: { lat: number; lng: number };
+        placeId: string; name?: string; address?: string; location?: { lat: number; lng: number };
     } | null>(null);
 
-    // In-memory itinerary
-    const [itinerary, setItinerary] = useState<{ placeId: string; name?: string; address?: string }[]>([]);
+    // In-memory itinerary (editable until "Save")
+    const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
+
+    // Multi-itinerary controls
+    const [itineraryId, setItineraryId] = useState<string>("default");
+    const [itineraryName, setItineraryName] = useState<string>("My Trip");
+    const [availableIts, setAvailableIts] = useState<ItinerarySummary[]>([]);
+    const [saving, setSaving] = useState(false);
+    const [loadingItList, setLoadingItList] = useState(false);
+    const [loadingItItems, setLoadingItItems] = useState(false);
 
     // Keys (Expo)
     const apiKey =
@@ -51,6 +59,7 @@ export default function MapsPage() {
         (Constants?.expoConfig?.extra as any)?.MAP_ID ||
         "DEMO_MAP_ID";
 
+    // ---------- Google Maps boot ----------
     useEffect(() => {
         if (!apiKey) { console.error("Missing Google Maps JS API key"); return; }
 
@@ -101,7 +110,7 @@ export default function MapsPage() {
         return () => cleanup();
     }, [apiKey, mapId]);
 
-    /* ---------------- Autocomplete: new service first, legacy fallback ---------------- */
+    // ---------- Autocomplete ----------
     useEffect(() => {
         if (!g || !query) { setSuggestions([]); return; }
 
@@ -134,7 +143,6 @@ export default function MapsPage() {
         return () => { clearTimeout(t); setLoadingSug(false); };
     }, [g, query]);
 
-    // Choose a suggestion → fetch details via Place class
     const chooseSuggestion = async (s: Suggestion) => {
         setQuery(s.description);
         setSuggestions([]);
@@ -142,7 +150,7 @@ export default function MapsPage() {
         await fetchAndShowPlace(g, s.place_id, map, marker, setCurrent);
     };
 
-    /* ---------------- Text Search: “best tacos near dallas”, etc. ---------------- */
+    // ---------- Text Search ----------
     const runTextSearch = async () => {
         if (!g || !map) return;
         const google = g;
@@ -154,9 +162,8 @@ export default function MapsPage() {
         setTextLoading(true);
 
         try {
-            // Use legacy PlacesService.textSearch (stable & broadly available)
             const service = new google.maps.places.PlacesService(map);
-            const req: any = { query: textQuery }; // You can add { location, radius } if desired
+            const req: any = { query: textQuery }; // add { location, radius } if desired
 
             service.textSearch(req, async (results: any[], status: any) => {
                 setTextLoading(false);
@@ -165,7 +172,6 @@ export default function MapsPage() {
                     return;
                 }
 
-                // Convert to our UI shape
                 const trimmed: TextResult[] = results.slice(0, 12).map((r: any) => ({
                     place_id: r.place_id,
                     name: r.name || "(Unnamed place)",
@@ -176,7 +182,6 @@ export default function MapsPage() {
 
                 setTextResults(trimmed);
 
-                // Fit map to results & drop temporary markers
                 const bounds = new google.maps.LatLngBounds();
                 trimmed.forEach((r, idx) => {
                     if (r.lat != null && r.lng != null) {
@@ -187,7 +192,6 @@ export default function MapsPage() {
                             position: pos,
                             label: `${(idx + 1)}`,
                         });
-                        // Clicking a result marker fetches full details via Place class
                         rm.addListener("click", async () => {
                             await fetchAndShowPlace(google, r.place_id, map, marker, setCurrent);
                         });
@@ -202,23 +206,141 @@ export default function MapsPage() {
         }
     };
 
-    // Add current place to itinerary
+    // ---------- Add item (local) ----------
     const addToItinerary = () => {
         if (!current?.placeId) {
             alert("Pick a place first (click a POI, choose from autocomplete, or click a text-search result).");
             return;
         }
-        setItinerary((prev) => [...prev, { placeId: current.placeId, name: current.name, address: current.address }]);
+        setItinerary((prev) => [...prev, {
+            placeId: current.placeId,
+            name: current.name,
+            address: current.address,
+            location: current.location,
+        }]);
     };
 
-    // Clicking an item in the text-search list → fetch Place details and center
-    const pickTextResult = async (r: TextResult) => {
-        if (!g || !map || !marker) return;
-        await fetchAndShowPlace(g, r.place_id, map, marker, setCurrent);
+    // ---------- Persistence helpers using your api() ----------
+    async function listItineraries(): Promise<ItinerarySummary[]> {
+        return api("/itinerary"); // GET
+    }
+    async function getItineraryItems(id: string): Promise<ItineraryItem[]> {
+        return api(`/itinerary/${encodeURIComponent(id)}`); // GET
+    }
+    async function saveItineraryItems(id: string, items: ItineraryItem[], name?: string): Promise<void> {
+        await api(`/itinerary/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, items }),
+        });
+    }
+
+    // ---------- Boot: load list and current itinerary ----------
+    useEffect(() => {
+        (async () => {
+            try {
+                setLoadingItList(true);
+                const list = await listItineraries();
+                setAvailableIts(list);
+
+                // Load selected itinerary's items (or empty if new)
+                setLoadingItItems(true);
+                const items = await getItineraryItems(itineraryId);
+                setItinerary(items);
+            } catch (e) {
+                // If user has none yet, we just keep an empty local itinerary
+                setItinerary([]);
+            } finally {
+                setLoadingItList(false);
+                setLoadingItItems(false);
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const onChangeItinerary = async (id: string) => {
+        setItineraryId(id);
+        try {
+            setLoadingItItems(true);
+            const items = await getItineraryItems(id);
+            setItinerary(items);
+        } catch {
+            setItinerary([]); // new/empty
+        } finally {
+            setLoadingItItems(false);
+        }
     };
 
+    const onSave = async () => {
+        if (!itineraryId || itineraryId.trim() === "") {
+            alert("Please set an itinerary id (e.g., spring-break-2026).");
+            return;
+        }
+        try {
+            setSaving(true);
+            await saveItineraryItems(itineraryId.trim(), itinerary, itineraryName);
+            // Optionally refresh list so counts/updatedAt update
+            const list = await listItineraries();
+            setAvailableIts(list);
+            // Optional: toast UI could go here
+        } catch (e) {
+            alert("Failed to save itinerary");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // ---------- UI ----------
     return (
         <div style={styles.page}>
+            {/* Header */}
+            <div style={styles.headerBar}>
+                <h1 style={styles.headerTitle}>Itinerary Builder</h1>
+
+                {/* Itinerary controls (ID selector + Name + Save) */}
+                <div style={styles.controlsRow}>
+                    <label style={styles.label}>Itinerary</label>
+                    <select
+                        value={itineraryId}
+                        onChange={(e) => onChangeItinerary(e.target.value)}
+                        style={styles.select}
+                        disabled={loadingItList}
+                    >
+                        {/* include current id if not in list */}
+                        {!availableIts.some((x) => x.itineraryId === itineraryId) && (
+                            <option value={itineraryId}>{itineraryId}</option>
+                        )}
+                        {availableIts.map((it) => (
+                            <option key={it.itineraryId} value={it.itineraryId}>
+                                {it.name || it.itineraryId}
+                            </option>
+                        ))}
+                        <option value="__new">+ New…</option>
+                    </select>
+
+                    {/* Inline new id input when "__new" is chosen */}
+                    {itineraryId === "__new" && (
+                        <input
+                            placeholder="new-itinerary-id"
+                            onChange={(e) => setItineraryId(e.target.value.trim())}
+                            style={styles.smallInput}
+                        />
+                    )}
+
+                    <label style={styles.label}>Name</label>
+                    <input
+                        value={itineraryName}
+                        onChange={(e) => setItineraryName(e.target.value)}
+                        placeholder="My Trip"
+                        style={styles.smallInput}
+                    />
+
+                    <button onClick={onSave} disabled={saving} style={styles.saveBtn}>
+                        {saving ? "Saving…" : "Save"}
+                    </button>
+                </div>
+            </div>
+
             {/* TOP: map + right panel */}
             <div style={styles.top}>
                 <div style={styles.mapCol}>
@@ -280,7 +402,7 @@ export default function MapsPage() {
                                 <div style={styles.empty}>No results yet.</div>
                             ) : (
                                 textResults.map((r, i) => (
-                                    <button key={r.place_id} style={styles.resultRow} onClick={() => pickTextResult(r)}>
+                                    <button key={r.place_id} style={styles.resultRow} onClick={() => fetchAndShowPlace(g!, r.place_id, map, marker, setCurrent)}>
                                         <span style={styles.resultIndex}>{i + 1}.</span>
                                         <span>
                                             <div style={{ fontWeight: 600 }}>{r.name}</div>
@@ -294,18 +416,21 @@ export default function MapsPage() {
                 </div>
             </div>
 
-            {/* BOTTOM: add + itinerary list */}
+            {/* BOTTOM: add + itinerary list (button fixed, list scrolls) */}
             <div style={styles.bottom}>
                 <button onClick={addToItinerary} style={styles.addBtn}>Add to itinerary</button>
                 <div style={styles.list}>
-                    {itinerary.length === 0
-                        ? <div style={styles.empty}>No items yet. Pick a place, then “Add to itinerary”.</div>
-                        : itinerary.map((it, i) => (
+                    {loadingItItems ? (
+                        <div style={styles.empty}>Loading itinerary…</div>
+                    ) : itinerary.length === 0 ? (
+                        <div style={styles.empty}>No items yet. Pick a place, then “Add to itinerary”.</div>
+                    ) : (
+                        itinerary.map((it, i) => (
                             <div key={`${it.placeId}-${i}`} style={styles.line}>
                                 {i + 1}. {it.name || "(Unnamed place)"} {it.address ? `— ${it.address}` : ""}
                             </div>
                         ))
-                    }
+                    )}
                 </div>
             </div>
         </div>
@@ -325,9 +450,7 @@ async function fetchAndShowPlace(
     const { Place } = await google.maps.importLibrary("places");
     const p = new (Place as any)({ id: placeId });
 
-    await p.fetchFields({
-        fields: ["id", "displayName", "formattedAddress", "location"]
-    });
+    await p.fetchFields({ fields: ["id", "displayName", "formattedAddress", "location"] });
 
     const name = p.displayName?.text ?? "(Unnamed place)";
     const address = p.formattedAddress ?? "";
@@ -381,7 +504,56 @@ function loadWithBootstrap(key: string): Promise<G> {
 
 /* ---------- styles ---------- */
 const styles: Record<string, React.CSSProperties> = {
-    page: { display: "grid", gridTemplateRows: "1fr auto", height: "100vh", width: "100%", background: "#f7f7f8" },
+    page: {
+        display: "grid",
+        gridTemplateRows: "auto 1fr auto",
+        height: "100vh",
+        width: "100%",
+        background: "#f7f7f8",
+    },
+
+    // header
+    headerBar: {
+        width: "100%",
+        padding: "14px 16px",
+        background: "#111827",
+        color: "white",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+    },
+    headerTitle: { fontSize: 18, fontWeight: 600, margin: 0, marginBottom: 10 },
+    controlsRow: {
+        display: "flex",
+        gap: 8,
+        alignItems: "center",
+        flexWrap: "wrap",
+    },
+    label: { fontSize: 12, color: "rgba(255,255,255,0.8)" },
+    select: {
+        height: 36,
+        borderRadius: 8,
+        border: "1px solid #d1d5db",
+        padding: "0 8px",
+        background: "white",
+    },
+    smallInput: {
+        height: 36,
+        borderRadius: 8,
+        border: "1px solid #d1d5db",
+        padding: "0 8px",
+        background: "white",
+        minWidth: 160,
+    },
+    saveBtn: {
+        background: "#2563eb",
+        color: "white",
+        border: "none",
+        borderRadius: 8,
+        height: 36,
+        padding: "0 14px",
+        cursor: "pointer",
+    },
+
+    // main
     top: { display: "grid", gridTemplateColumns: "1fr 420px", gap: 16, padding: 16, boxSizing: "border-box" },
     mapCol: { position: "relative", width: "100%", height: "100%", minHeight: 360, borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden", background: "#fff" },
     map: { width: "100%", height: "100%" },
@@ -397,10 +569,34 @@ const styles: Record<string, React.CSSProperties> = {
     detailsLine: { padding: "4px 0", fontSize: 14, color: "#111827" },
     empty: { color: "#6b7280", fontSize: 14 },
 
-    bottom: { borderTop: "1px solid #e5e7eb", padding: 16, display: "grid", gridTemplateColumns: "200px 1fr", gap: 16, background: "white" },
-    addBtn: { background: "#111827", color: "white", border: "none", borderRadius: 10, padding: "10px 14px", cursor: "pointer", fontSize: 14 },
-
-    list: { whiteSpace: "pre-wrap", lineHeight: 1.5, paddingTop: 4 },
+    // bottom fixed height w/ scrollable list
+    bottom: {
+        borderTop: "1px solid #e5e7eb",
+        padding: 16,
+        display: "grid",
+        gridTemplateColumns: "200px 1fr",
+        gap: 16,
+        background: "white",
+        alignItems: "start",
+        maxHeight: "25vh",
+    },
+    addBtn: {
+        background: "#111827",
+        color: "white",
+        border: "none",
+        borderRadius: 10,
+        padding: "10px 14px",
+        cursor: "pointer",
+        fontSize: 14,
+        height: 44,
+    },
+    list: {
+        whiteSpace: "pre-wrap",
+        lineHeight: 1.5,
+        paddingTop: 4,
+        overflowY: "auto",
+        maxHeight: "20vh",
+    },
     line: { padding: "4px 0", borderBottom: "1px dashed #eee", fontSize: 14, color: "#111827" },
 
     goBtn: { background: "#111827", color: "white", border: "none", borderRadius: 8, padding: "0 14px", height: 40, cursor: "pointer" },

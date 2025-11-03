@@ -5,6 +5,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import authRouter from './auth';
 import { User } from './models/User';
+import itineraryRouter from './routes/itinerary';
 
 const app = express();
 
@@ -56,3 +57,6 @@ mongoose
     console.error('❌ Mongo connect error:', err);
     process.exit(1);
   });
+
+app.use('/itinerary', itineraryRouter);
+

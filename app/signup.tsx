@@ -59,9 +59,6 @@ export default function SignupScreen() {
             if (!res.ok) throw new Error(data?.error || 'Sign up failed');
 
             setToken(data.token);
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('auth:changed'));
-            }
 
             // Navigate to success screen or main app
             router.replace('/signup-success');

@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import authRouter from './auth';
 import { User } from './models/User';
 import itineraryRouter from './routes/itinerary';
+import shareItineraryRouter from './routes/shareItinerary';
 
 const app = express();
 
@@ -59,4 +60,5 @@ mongoose
   });
 
 app.use('/itinerary', itineraryRouter);
+app.use('/share-itinerary', shareItineraryRouter);
 

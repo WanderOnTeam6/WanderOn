@@ -245,6 +245,14 @@ export default function LoggedInScreen() {
                             <Ionicons name="add-circle-outline" size={24} color="#fff" />
                             <ThemedText style={styles.actionText}>Create New Trip</ThemedText>
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.actionButton}
+                            onPress={() => router.push('/add-group')}
+                        >
+                            <Ionicons name="people-outline" size={24} color="#fff" />
+                            <ThemedText style={styles.actionText}>Group Shared</ThemedText>
+                        </TouchableOpacity>
                     </View>
                 </LinearGradient>
             </ImageBackground>

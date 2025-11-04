@@ -83,11 +83,7 @@ export default function LoginScreen() {
                 console.log('✅ Logged in user ID:', me._id);
             }
 
-            // Step 4: Trigger global update and navigate
-            if (typeof window !== 'undefined') {
-                window.dispatchEvent(new Event('auth:changed'));
-            }
-
+            // Step 4: Navigate to logged-in screen
             router.replace('/logged-in');
         } catch (e: any) {
             Alert.alert('Sign In Failed', e.message || 'An unexpected error occurred.');

@@ -31,6 +31,10 @@ export default function SignupScreen() {
         router.replace('/login');
     }
 
+    function handleArrow() {
+        router.replace('/login');
+    }
+
     async function handleSignup() {
         if (!firstName || !lastName || !email || !password) {
             Alert.alert('Missing fields', 'Please fill in all required fields.');
@@ -89,7 +93,7 @@ export default function SignupScreen() {
                         {/* Back Button */}
                         <TouchableOpacity
                             style={styles.backButton}
-                            onPress={() => router.back()}
+                            onPress={handleArrow}
                         >
                             <Ionicons name="arrow-back" size={24} color="#333" />
                         </TouchableOpacity>

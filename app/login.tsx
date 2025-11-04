@@ -191,10 +191,10 @@ export default function LoginScreen() {
                             <Text style={styles.loginButtonText}>Create Account</Text>
                         </TouchableOpacity>
 
-                        {/* Logout Button (for testing now) */}
+                        {/* Logout Button (for testing now)
                         <TouchableOpacity style={[styles.loginButton, { backgroundColor: '#ff3b30' }]} onPress={handleLogout}>
                             <Text style={styles.loginButtonText}>Log Out (Test)</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity> */}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

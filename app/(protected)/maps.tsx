@@ -352,6 +352,24 @@ export default function MapsPage() {
                     </button>
 
                     <h1 style={styles.headerTitle}>Itinerary Builder</h1>
+
+                    <button
+                        onClick={() => router.replace('/logged-in')}
+                        style={{
+                            backgroundColor: '#34C759',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            position: 'absolute',
+                            right: 20,
+                            top: 16,
+                        }}
+                    >
+                        Home
+                    </button>
                 </div>
 
                 {/* Itinerary controls (ID selector + Name + Save) */}

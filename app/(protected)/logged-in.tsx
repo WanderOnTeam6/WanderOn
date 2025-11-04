@@ -146,6 +146,10 @@ export default function LoggedInScreen() {
         router.replace('/maps');
     }
 
+    function handleViewTrips() {
+        router.replace('/view-trips');
+    }
+
     async function onLogout() {
         console.log('[DEBUG] Logging out user:', userId);
         try {
@@ -232,7 +236,7 @@ export default function LoggedInScreen() {
                     <View style={styles.footer}>
                         <TouchableOpacity
                             style={styles.actionButton}
-                            onPress={() => handleQuickAction('View Trips')}
+                            onPress={() => handleViewTrips('View Trips')}
                         >
                             <Ionicons name="map-outline" size={24} color="#fff" />
                             <ThemedText style={styles.actionText}>View Trips</ThemedText>

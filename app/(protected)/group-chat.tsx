@@ -279,6 +279,16 @@ export default function GroupChatScreen() {
     const renderMessage = ({ item }: { item: ChatMessage }) => {
         const isOwnMessage = item.userId === currentUser?.id;
         
+        // Debug logging
+        console.log('📝 Message debug:', {
+            messageId: item._id,
+            messageUserId: item.userId,
+            currentUserId: currentUser?.id,
+            isOwnMessage,
+            userName: item.userName,
+            message: item.message.substring(0, 30) + '...'
+        });
+        
         // Handle system messages (like member join/leave notifications)
         if (item.type === 'system') {
             return (
@@ -307,9 +317,14 @@ export default function GroupChatScreen() {
                 styles.messageContainer,
                 isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer
             ]}>
-                {!isOwnMessage && (
-                    <Text style={styles.senderName}>{item.userName}</Text>
-                )}
+                {/* Always show sender name for clarity, but style differently */}
+                <Text style={[
+                    styles.senderName,
+                    isOwnMessage ? styles.ownSenderName : styles.otherSenderName
+                ]}>
+                    {isOwnMessage ? 'You' : item.userName}
+                </Text>
+                
                 <View style={[
                     styles.messageBubble,
                     isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble
@@ -540,33 +555,53 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
     },
     messageContainer: {
-        marginVertical: 4,
+        marginVertical: 2,
         maxWidth: width * 0.75,
+        marginHorizontal: 16,
     },
     ownMessageContainer: {
         alignSelf: 'flex-end',
+        alignItems: 'flex-end',
     },
     otherMessageContainer: {
         alignSelf: 'flex-start',
+        alignItems: 'flex-start',
     },
     senderName: {
         fontSize: 12,
         color: '#666',
         marginBottom: 4,
-        marginLeft: 12,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    ownSenderName: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+        marginRight: 4,
+        fontWeight: '500',
+        textAlign: 'right',
+    },
+    otherSenderName: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+        marginLeft: 4,
+        fontWeight: '500',
     },
     messageBubble: {
         borderRadius: 18,
         paddingHorizontal: 16,
-        paddingVertical: 10,
+        paddingVertical: 12,
+        maxWidth: '100%',
     },
     ownMessageBubble: {
         backgroundColor: '#007AFF',
+        borderBottomRightRadius: 4,
     },
     otherMessageBubble: {
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#e1e5e9',
+        backgroundColor: '#f1f1f1',
+        borderBottomLeftRadius: 4,
     },
     messageText: {
         fontSize: 16,
@@ -576,19 +611,20 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     otherMessageText: {
-        color: '#333',
+        color: '#000',
     },
     messageTime: {
         fontSize: 11,
-        marginTop: 4,
+        marginTop: 2,
     },
     ownMessageTime: {
         color: '#666',
         textAlign: 'right',
+        marginRight: 4,
     },
     otherMessageTime: {
         color: '#999',
-        marginLeft: 12,
+        marginLeft: 4,
     },
     systemMessageContainer: {
         alignItems: 'center',

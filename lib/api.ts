@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Keep the BASE URL as is, since it's used by other pages
-export const BASE = 'http://localhost:4000'.replace(/\/$/, '');
+export const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '')
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await getToken();  // Use the updated async getToken function

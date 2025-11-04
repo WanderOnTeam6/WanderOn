@@ -84,7 +84,15 @@ ShareItinerarySchema.methods.removeMember = function(userId: string) {
 };
 
 ShareItinerarySchema.methods.addMessage = function(userId: string, message: string, type: string = 'text') {
-    this.messages.push({ userId, message, type });
+    // For system messages, we'll use a special system user ID (null) or the first admin's ID
+    let actualUserId = userId;
+    
+    if (userId === 'system') {
+        // For system messages, use the group creator's ID
+        actualUserId = this.createdBy;
+    }
+    
+    this.messages.push({ userId: actualUserId, message, type });
     return this.save();
 };
 

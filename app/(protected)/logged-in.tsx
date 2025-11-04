@@ -1,5 +1,5 @@
 // app/logged-in.tsx
-import { clearToken } from '@/lib/api'; // <-- ensure this exists like in maps
+import { api, clearToken } from '@/lib/api'; // <-- ensure this exists like in maps
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -74,16 +74,19 @@ export default function LoggedInScreen() {
 
     const [userId, setUserId] = useState<string | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [userGroups, setUserGroups] = useState<any[]>([]);
+    const [loadingGroups, setLoadingGroups] = useState(true);
 
     // Viewability for slideshow
     const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
-    const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    
+    const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
         if (viewableItems.length > 0) {
             const newIndex = viewableItems[0].index;
             console.log(`Slide changed to index: ${newIndex}`);
             setCurrentIndex(newIndex);
         }
-    }, []);
+    }).current;
 
     // Auto-advance slideshow
     useEffect(() => {
@@ -107,6 +110,26 @@ export default function LoggedInScreen() {
             console.log('[DEBUG] Logged-in screen, user ID:', id);
         })();
     }, []);
+
+    // Fetch user groups
+    useEffect(() => {
+        fetchUserGroups();
+    }, []);
+
+    const fetchUserGroups = async () => {
+        try {
+            setLoadingGroups(true);
+            console.log('🔍 Fetching user groups...');
+            const groups = await api('/share-itinerary') as any[];
+            console.log('✅ User groups fetched:', groups);
+            setUserGroups(groups);
+        } catch (error) {
+            console.error('❌ Failed to fetch user groups:', error);
+            setUserGroups([]);
+        } finally {
+            setLoadingGroups(false);
+        }
+    };
 
     const getItemLayout = useCallback(
         (_: any, index: number) => ({
@@ -155,6 +178,54 @@ export default function LoggedInScreen() {
             router.replace('/onboarding');
         }
     }
+
+    const getGroupInitials = (groupName: string) => {
+        return groupName.charAt(0).toUpperCase();
+    };
+
+    const navigateToGroupChat = (groupId: string) => {
+        console.log('🚀 Navigating to group chat:', groupId);
+        router.push({
+            pathname: '/group-chat',
+            params: { groupId }
+        } as any);
+    };
+
+    const renderGroupCircle = ({ item }: { item: any }) => {
+        const initials = getGroupInitials(item.name);
+        
+        return (
+            <TouchableOpacity
+                style={styles.groupCircle}
+                onPress={() => navigateToGroupChat(item._id)}
+                activeOpacity={0.8}
+            >
+                <View style={styles.groupCircleInner}>
+                    <Text style={styles.groupInitials}>{initials}</Text>
+                </View>
+                <Text style={styles.groupName} numberOfLines={2}>
+                    {item.name}
+                </Text>
+            </TouchableOpacity>
+        );
+    };
+
+    const renderCreateGroupButton = () => {
+        return (
+            <TouchableOpacity
+                style={styles.groupCircle}
+                onPress={() => router.push('/create-group')}
+                activeOpacity={0.8}
+            >
+                <View style={styles.createGroupCircle}>
+                    <Ionicons name="add" size={28} color="#007AFF" />
+                </View>
+                <Text style={styles.groupName} numberOfLines={2}>
+                    Create Group
+                </Text>
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <ThemedView style={styles.container}>
@@ -228,6 +299,31 @@ export default function LoggedInScreen() {
                         <ProgressDots currentIndex={currentIndex} total={featuresData.length} />
                     </View>
 
+                    {/* Current Groups Section */}
+                    {!loadingGroups && (
+                        <View style={styles.groupsSection}>
+                            <Text style={styles.groupsSectionTitle}>Your Groups</Text>
+                            <View style={styles.groupsContainer}>
+                                {/* Create Group Button */}
+                                {renderCreateGroupButton()}
+                                
+                                {/* Existing Groups */}
+                                {userGroups.length > 0 && (
+                                    <FlatList
+                                        data={userGroups}
+                                        renderItem={renderGroupCircle}
+                                        keyExtractor={(item) => item._id}
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.groupsList}
+                                        ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+                                        style={styles.groupsFlatList}
+                                    />
+                                )}
+                            </View>
+                        </View>
+                    )}
+
                     {/* Dashboard Footer - Quick Actions */}
                     <View style={styles.footer}>
                         <TouchableOpacity
@@ -244,14 +340,6 @@ export default function LoggedInScreen() {
                         >
                             <Ionicons name="add-circle-outline" size={24} color="#fff" />
                             <ThemedText style={styles.actionText}>Create New Trip</ThemedText>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.actionButton}
-                            onPress={() => router.push('/add-group')}
-                        >
-                            <Ionicons name="people-outline" size={24} color="#fff" />
-                            <ThemedText style={styles.actionText}>Group Shared</ThemedText>
                         </TouchableOpacity>
                     </View>
                 </LinearGradient>
@@ -424,5 +512,80 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         marginLeft: 12,
+    },
+
+    // Groups Section
+    groupsSection: {
+        paddingHorizontal: 24,
+        paddingVertical: 20,
+    },
+    groupsSectionTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 16,
+    },
+    groupsContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    groupsList: {
+        paddingHorizontal: 4,
+    },
+    groupsFlatList: {
+        flex: 1,
+        marginLeft: 16,
+    },
+    groupCircle: {
+        alignItems: 'center',
+        width: 80,
+    },
+    groupCircleInner: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#007AFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    createGroupCircle: {
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#fff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 8,
+        borderWidth: 2,
+        borderColor: '#007AFF',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    groupInitials: {
+        color: '#fff',
+        fontSize: 20,
+        fontWeight: '700',
+    },
+    groupName: {
+        fontSize: 12,
+        color: '#333',
+        textAlign: 'center',
+        fontWeight: '500',
+        lineHeight: 14,
     },
 });

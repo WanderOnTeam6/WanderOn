@@ -7,6 +7,7 @@ import authRouter from './auth';
 import { User } from './models/User';
 import itineraryRouter from './routes/itinerary';
 import shareItineraryRouter from './routes/shareItinerary';
+import usersRouter from './routes/users';
 
 const app = express();
 
@@ -52,7 +53,7 @@ mongoose
   .connect(process.env.MONGO_URI!)
   .then(() => {
     console.log('✅ MongoDB connected');
-    app.listen(PORT, () => console.log(`🚀 API running on http://localhost:${PORT}`));
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 API running on http://0.0.0.0:${PORT}`));
   })
   .catch((err) => {
     console.error('❌ Mongo connect error:', err);
@@ -61,4 +62,5 @@ mongoose
 
 app.use('/itinerary', itineraryRouter);
 app.use('/share-itinerary', shareItineraryRouter);
+app.use('/users', usersRouter);
 

@@ -95,6 +95,10 @@ export default function ViewTrips() {
         })();
     }, []);
 
+    const goToAIRoute = (id: string) => {
+        router.replace(`/ai-routes?itineraryId=${encodeURIComponent(id)}`);
+    };
+
     return (
         <div style={styles.page}>
             {/* Header */}
@@ -152,14 +156,24 @@ export default function ViewTrips() {
                                     ) : items.length === 0 ? (
                                         <div style={styles.muted}>No places yet.</div>
                                     ) : (
-                                        <ol style={styles.ol}>
-                                            {items.map((p, idx) => (
-                                                <li key={`${p.placeId}-${idx}`} style={styles.li}>
-                                                    <span style={{ fontWeight: 600 }}>{p.name || "(Unnamed place)"}</span>
-                                                    {p.address ? <span style={styles.addr}> — {p.address}</span> : null}
-                                                </li>
-                                            ))}
-                                        </ol>
+                                        <>
+                                            <ol style={styles.ol}>
+                                                {items.map((p, idx) => (
+                                                    <li key={`${p.placeId}-${idx}`} style={styles.li}>
+                                                        <span style={{ fontWeight: 600 }}>{p.name || "(Unnamed place)"}</span>
+                                                        {p.address ? <span style={styles.addr}> — {p.address}</span> : null}
+                                                    </li>
+                                                ))}
+                                            </ol>
+                                            {/* Get AI route button */}
+                                            <button
+                                                style={styles.aiBtn}
+                                                onClick={() => goToAIRoute(id)}
+                                                title="Compute best order with live travel times"
+                                            >
+                                                Get AI route
+                                            </button>
+                                        </>
                                     )}
                                 </div>
                             );
@@ -223,6 +237,17 @@ const styles: Record<string, React.CSSProperties> = {
     ol: { margin: 0, paddingLeft: 18 },
     li: { padding: "6px 0", color: "#111827" },
     addr: { color: "#6b7280" },
+    aiBtn: {
+        marginTop: 10,
+        width: "100%",
+        background: "#111827",
+        color: "white",
+        border: "none",
+        borderRadius: 8,
+        padding: "10px 12px",
+        cursor: "pointer",
+        fontSize: 14,
+    },
     muted: { color: "#6b7280", fontSize: 14 },
     empty: {
         maxWidth: 700,

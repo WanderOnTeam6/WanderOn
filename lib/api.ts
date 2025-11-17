@@ -1,10 +1,35 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Keep the BASE URL as is, since it's used by other pages
-export const BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '')
+const CODESPACES_BASE = 'https://bug-free-telegram-x7476944r7rhvqwj-4000.app.github.dev'.replace(/\/$/, '');
+const LOCAL_BASE = 'http://localhost:4000'.replace(/\/$/, '');
+
+function detectBase() {
+  let base: string;
+
+  if (typeof window !== 'undefined' && window.location.hostname.includes('app.github.dev')) {
+    base = CODESPACES_BASE;
+    console.log(
+      '%c[API DETECTED]',
+      'color: #4ade80; font-weight: bold;',
+      'Running in GitHub Codespaces environment.'
+    );
+  } else {
+    base = LOCAL_BASE;
+    console.log(
+      '%c[API DETECTED]',
+      'color: #60a5fa; font-weight: bold;',
+      'Running in local environment.'
+    );
+  }
+
+  console.log('%c[API BASE]', 'color: #facc15; font-weight: bold;', base);
+  return base;
+}
+
+export const BASE = detectBase();
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await getToken();  // Use the updated async getToken function
+  const token = await getToken();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -12,7 +37,6 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  // Ensure exactly one slash between BASE and path
   const url = `${BASE}${path.startsWith('/') ? path : `/${path}`}`;
 
   const res = await fetch(url, { ...options, headers, credentials: 'omit' });
@@ -26,7 +50,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return data as T;
 }
 
-// Updated token helpers using AsyncStorage
+// Token helpers
 export async function setToken(token: string) {
   try {
     await AsyncStorage.setItem('token', token);

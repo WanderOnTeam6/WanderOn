@@ -21,6 +21,8 @@ export default function MapsPage() {
     const [g, setG] = useState<G | null>(null);
     const [map, setMap] = useState<any>(null);
     const [marker, setMarker] = useState<any>(null);
+    // Selection for delete
+    const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
     // Markers for text-search results (we’ll clear & redraw each query)
     const resultMarkersRef = useRef<any[]>([]);
@@ -189,6 +191,17 @@ export default function MapsPage() {
         await fetchAndShowPlace(g, s.place_id, map, marker, setCurrent);
     };
 
+    // Delete Handler
+    const deleteSelected = () => {
+        if (selectedIdx === null) {
+            alert("Select a place from the list to delete.");
+            return;
+        }
+        setItinerary((prev) => prev.filter((_, i) => i !== selectedIdx));
+        setSelectedIdx(null);
+    };
+
+
     // ---------- Text Search ----------
     const runTextSearch = async () => {
         if (!g || !map) return;
@@ -251,13 +264,28 @@ export default function MapsPage() {
             alert("Pick a place first (click a POI, choose from autocomplete, or click a text-search result).");
             return;
         }
-        setItinerary((prev) => [...prev, {
-            placeId: current.placeId,
-            name: current.name,
-            address: current.address,
-            location: current.location,
-        }]);
+
+        // Prevent duplicates by placeId
+        const exists = itinerary.some((it) => it.placeId === current.placeId);
+        if (exists) {
+            alert("This place is already in your itinerary.");
+            return;
+        }
+
+        setItinerary((prev) => [
+            ...prev,
+            {
+                placeId: current.placeId,
+                name: current.name,
+                address: current.address,
+                location: current.location,
+            },
+        ]);
+
+        // Clear selection after add
+        setSelectedIdx(null);
     };
+
 
     // ---------- Persistence helpers using your api() ----------
     async function listItineraries(): Promise<ItinerarySummary[]> {
@@ -299,39 +327,76 @@ export default function MapsPage() {
 
     const onChangeItinerary = async (id: string) => {
         setItineraryId(id);
+        if (id === "__new") {
+            // starting a brand-new itinerary: clear items
+            setItinerary([]);
+            return;
+        }
         try {
             setLoadingItItems(true);
             const items = await getItineraryItems(id);
             setItinerary(items);
         } catch {
-            setItinerary([]); // new/empty
+            setItinerary([]);
         } finally {
             setLoadingItItems(false);
         }
     };
 
     const onSave = async () => {
-        if (!itineraryId || itineraryId.trim() === "") {
-            alert("Please set an itinerary id (e.g., spring-break-2026).");
+        const name = itineraryName.trim();
+        if (!name) {
+            alert("Please enter an itinerary name.");
             return;
         }
+
+        // Case-insensitive name clash among *other* itineraries
+        const clash = availableIts.some(it =>
+            (it.name || it.itineraryId).trim().toLowerCase() === name.toLowerCase() &&
+            it.itineraryId !== itineraryId // allow keeping same name on the same itinerary
+        );
+        if (clash) {
+            alert("An itinerary with this name already exists. Choose a different name.");
+            return;
+        }
+
+        // Generate/normalize itineraryId for new itineraries
+        let id = itineraryId;
+        if (!id || id === "__new") {
+            const base = slugifyName(name);
+            id = base;
+            let i = 2;
+            while (availableIts.some(it => it.itineraryId === id)) {
+                id = `${base}-${i++}`;
+            }
+            setItineraryId(id);
+        }
+
         try {
             setSaving(true);
-            console.log("[DEBUG] Saving itinerary for user:", userId, {
-                itineraryId: itineraryId.trim(),
-                name: itineraryName,
-                items: itinerary,
-            });
-            await saveItineraryItems(itineraryId.trim(), itinerary, itineraryName);
-            // Optionally refresh list so counts/updatedAt update
+            await saveItineraryItems(id, itinerary, name);
             const list = await listItineraries();
             setAvailableIts(list);
-        } catch (e) {
-            alert("Failed to save itinerary");
+            alert("Saved!");
+        } catch (e: any) {
+            // If server enforces uniqueness, surface its message
+            alert(e?.message || "Failed to save itinerary");
         } finally {
             setSaving(false);
         }
     };
+
+
+    function slugifyName(name: string) {
+        return (
+            name
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 64) || 'trip'
+        );
+    }
 
     // ---------- UI ----------
     return (
@@ -392,15 +457,6 @@ export default function MapsPage() {
                         ))}
                         <option value="__new">+ New…</option>
                     </select>
-
-                    {/* Inline new id input when "__new" is chosen */}
-                    {itineraryId === "__new" && (
-                        <input
-                            placeholder="new-itinerary-id"
-                            onChange={(e) => setItineraryId(e.target.value.trim())}
-                            style={styles.smallInput}
-                        />
-                    )}
 
                     <label style={styles.label}>Name</label>
                     <input
@@ -508,25 +564,69 @@ export default function MapsPage() {
                 </div>
             </div>
 
-            {/* BOTTOM: add + itinerary list (button fixed, list scrolls) */}
             <div style={styles.bottom}>
-                <button onClick={addToItinerary} style={styles.addBtn}>Add to itinerary</button>
-                <div style={styles.list}>
+                {/* Button row (Add/Delete/View all) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 300 }}>
+                    <div style={{ display: "flex", gap: 10 }}>
+                        <button onClick={addToItinerary} style={styles.addBtn}>Add to itinerary</button>
+                        <button onClick={deleteSelected} style={styles.deleteBtn} disabled={selectedIdx === null}>
+                            Delete selected
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => router.replace('/view-trips')}
+                        style={styles.viewAllBtn}
+                    >
+                        View All Trips
+                    </button>
+                </div>
+
+                {/* List stays beside buttons */}
+                <div style={{ flex: 1, marginLeft: 20 }}>
                     {loadingItItems ? (
                         <div style={styles.empty}>Loading itinerary…</div>
                     ) : itinerary.length === 0 ? (
                         <div style={styles.empty}>No items yet. Pick a place, then “Add to itinerary”.</div>
                     ) : (
                         itinerary.map((it, i) => (
-                            <div key={`${it.placeId}-${i}`} style={styles.line}>
-                                {i + 1}. {it.name || "(Unnamed place)"} {it.address ? `— ${it.address}` : ""}
-                            </div>
+                            <button
+                                key={`${it.placeId}-${i}`}
+                                onClick={() => setSelectedIdx(i)}
+                                style={{
+                                    ...styles.lineButton,
+                                    ...(selectedIdx === i ? styles.lineSelected : {}),
+                                }}
+                                title="Click to select"
+                            >
+                                <span style={{ opacity: 0.75, marginRight: 6 }}>{i + 1}.</span>
+                                <span>{it.name || "(Unnamed place)"} {it.address ? `— ${it.address}` : ""}</span>
+                            </button>
                         ))
                     )}
                 </div>
             </div>
         </div>
     );
+}
+
+async function getDetailsLegacy(google: G, placeId: string, map: any) {
+    return new Promise<{ name?: string; address?: string; loc?: any }>((resolve) => {
+        const svc = new google.maps.places.PlacesService(map);
+        svc.getDetails(
+            { placeId, fields: ['name', 'formatted_address', 'geometry'] },
+            (res: any, status: any) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && res) {
+                    resolve({
+                        name: res.name,
+                        address: res.formatted_address,
+                        loc: res.geometry?.location ?? null,
+                    });
+                } else {
+                    resolve({ name: undefined, address: undefined, loc: null });
+                }
+            }
+        );
+    });
 }
 
 /* ---------- Fetch details via Place class + fields, update map/marker ---------- */
@@ -539,28 +639,46 @@ async function fetchAndShowPlace(
         placeId: string; name?: string; address?: string; location?: { lat: number; lng: number }
     } | null>>
 ) {
-    const { Place } = await google.maps.importLibrary("places");
-    const p = new (Place as any)({ id: placeId });
+    // Try Places (New) first
+    try {
+        const { Place } = await google.maps.importLibrary('places');
+        const p = new (Place as any)({ id: placeId });
+        await p.fetchFields({ fields: ['id', 'displayName', 'formattedAddress', 'location'] });
 
-    await p.fetchFields({ fields: ["id", "displayName", "formattedAddress", "location"] });
+        let name = p.displayName?.text as string | undefined;
+        let address = (p.formattedAddress as string) ?? '';
+        let loc = p.location;
 
-    const name = p.displayName?.text ?? "(Unnamed place)";
-    const address = p.formattedAddress ?? "";
-    const loc = p.location;
+        // If Places (New) didn't give us a readable name (Essentials SKU), fallback to legacy getDetails
+        if (!name) {
+            const legacy = await getDetailsLegacy(google, placeId, map);
+            name = legacy.name || name;
+            address = legacy.address || address;
+            if (!loc && legacy.loc) loc = legacy.loc;
+        }
 
-    if (loc) {
-        const pt = { lat: loc.lat(), lng: loc.lng() };
-        if (marker?.setPosition) marker.setPosition(pt); else marker.position = pt;
-        map?.panTo(pt);
-        map?.setZoom(16);
+        if (loc) {
+            const pt = { lat: loc.lat(), lng: loc.lng() };
+            if (marker?.setPosition) marker.setPosition(pt); else marker.position = pt;
+            map?.panTo(pt);
+            map?.setZoom(16);
+            setCurrent({ placeId, name, address, location: pt });
+        } else {
+            setCurrent({ placeId, name, address });
+        }
+    } catch (e) {
+        // Total fallback: legacy only
+        const legacy = await getDetailsLegacy(google, placeId, map);
+        if (legacy.loc) {
+            const pt = { lat: legacy.loc.lat(), lng: legacy.loc.lng() };
+            if (marker?.setPosition) marker.setPosition(pt); else marker.position = pt;
+            map?.panTo(pt);
+            map?.setZoom(16);
+            setCurrent({ placeId, name: legacy.name, address: legacy.address, location: pt });
+        } else {
+            setCurrent({ placeId, name: legacy.name, address: legacy.address });
+        }
     }
-
-    setCurrent({
-        placeId,
-        name,
-        address,
-        location: loc ? { lat: loc.lat(), lng: loc.lng() } : undefined,
-    });
 }
 
 /* ---------- Bootstrap loader (recommended by Google) ---------- */
@@ -593,6 +711,9 @@ function loadWithBootstrap(key: string): Promise<G> {
         tick();
     });
 }
+
+
+
 
 /* ---------- styles ---------- */
 const styles: Record<string, React.CSSProperties> = {
@@ -676,6 +797,50 @@ const styles: Record<string, React.CSSProperties> = {
         padding: "0 14px",
         cursor: "pointer",
     },
+
+    viewAllBtn: {
+        width: "100%",          // match width of add+delete
+        background: "#2563eb",
+        color: "white",
+        border: "none",
+        borderRadius: 10,
+        padding: "12px 16px",
+        cursor: "pointer",
+        fontSize: 14,
+        height: 44,
+    },
+
+    deleteBtn: {
+        background: "#ef4444",
+        color: "white",
+        border: "none",
+        borderRadius: 10,
+        padding: "10px 14px",
+        cursor: "pointer",
+        fontSize: 14,
+        height: 44,
+    },
+
+    lineButton: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        width: "100%",
+        textAlign: "left" as const,
+        padding: "8px 10px",
+        background: "white",
+        border: "1px solid #eee",
+        borderRadius: 8,
+        marginBottom: 6,
+        cursor: "pointer",
+        color: "#111827",
+    },
+    lineSelected: {
+        border: "1px solid #2563eb",
+        boxShadow: "0 0 0 2px rgba(37,99,235,0.15)",
+    },
+
+
 
     // main
     top: { display: "grid", gridTemplateColumns: "1fr 420px", gap: 16, padding: 16, boxSizing: "border-box" },

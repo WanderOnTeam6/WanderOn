@@ -4,8 +4,10 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     Alert,
+    FlatList,
     Image,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     SafeAreaView,
     ScrollView,
@@ -16,17 +18,70 @@ import {
     View,
 } from 'react-native';
 
+const countryCodes = [
+    { code: '+1', country: 'United States' },
+    { code: '+91', country: 'India' },
+    { code: '+44', country: 'United Kingdom' },
+    { code: '+81', country: 'Japan' },
+    { code: '+86', country: 'China' },
+    { code: '+61', country: 'Australia' },
+    { code: '+49', country: 'Germany' },
+    { code: '+33', country: 'France' },
+    { code: '+55', country: 'Brazil' },
+    { code: '+52', country: 'Mexico' },
+    { code: '+7', country: 'Russia' },
+    { code: '+62', country: 'Indonesia' },
+    { code: '+82', country: 'South Korea' },
+    { code: '+34', country: 'Spain' },
+    { code: '+39', country: 'Italy' },
+    { code: '+27', country: 'South Africa' },
+    { code: '+66', country: 'Thailand' },
+    { code: '+65', country: 'Singapore' },
+    { code: '+60', country: 'Malaysia' },
+    { code: '+63', country: 'Philippines' },
+    { code: '+94', country: 'Sri Lanka' },
+    { code: '+93', country: 'Afghanistan' },
+    { code: '+98', country: 'Iran' },
+    { code: '+964', country: 'Iraq' },
+    { code: '+971', country: 'United Arab Emirates' },
+    { code: '+92', country: 'Pakistan' },
+    { code: '+54', country: 'Argentina' },
+    { code: '+56', country: 'Chile' },
+    { code: '+57', country: 'Colombia' },
+    { code: '+58', country: 'Venezuela' },
+    { code: '+20', country: 'Egypt' },
+    { code: '+212', country: 'Morocco' },
+    { code: '+216', country: 'Tunisia' },
+    { code: '+234', country: 'Nigeria' },
+    { code: '+233', country: 'Ghana' },
+    { code: '+254', country: 'Kenya' },
+    { code: '+256', country: 'Uganda' },
+    { code: '+258', country: 'Mozambique' },
+    { code: '+64', country: 'New Zealand' },
+    { code: '+48', country: 'Poland' },
+    { code: '+46', country: 'Sweden' },
+    { code: '+47', country: 'Norway' },
+    { code: '+45', country: 'Denmark' },
+    { code: '+43', country: 'Austria' },
+    { code: '+41', country: 'Switzerland' },
+    { code: '+351', country: 'Portugal' },
+    { code: '+90', country: 'Turkey' },
+    { code: '+30', country: 'Greece' },
+];
+
 export default function SignupScreen() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
-    const [phoneError, setPhoneError] = useState(''); // State for phone validation error
+    const [phoneError, setPhoneError] = useState('');
     const [email, setEmail] = useState('');
-    const [emailError, setEmailError] = useState(''); // State for email validation error
+    const [emailError, setEmailError] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [acceptTerms, setAcceptTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [selectedCountryCode, setSelectedCountryCode] = useState('+1'); // Default country code
+    const [isCountryCodeModalVisible, setIsCountryCodeModalVisible] = useState(false);
     const router = useRouter();
 
     function handleGoBack() {
@@ -43,15 +98,13 @@ export default function SignupScreen() {
             return;
         }
 
-        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setEmailError('Please enter a valid email address');
             return;
         }
 
-        // Phone number validation
-        const phoneRegex = /^[0-9]{10}$/; // Basic phone validation for 10 digits
+        const phoneRegex = /^[0-9]{10}$/;
         if (!phoneRegex.test(phone)) {
             setPhoneError('Please enter a valid phone number');
             return;
@@ -72,7 +125,7 @@ export default function SignupScreen() {
                     lastName: lastName.trim(),
                     email: email.trim(),
                     password: password,
-                    phone: phone.trim(),
+                    phone: `${selectedCountryCode}${phone.trim()}`,
                 }),
             });
             const data = await res.json().catch(() => ({} as any));
@@ -80,7 +133,6 @@ export default function SignupScreen() {
 
             setToken(data.token);
 
-            // Navigate to success screen or main app
             router.replace('/signup-success');
         } catch (e: any) {
             Alert.alert('Sign up failed', e.message || 'Please try again');
@@ -162,67 +214,85 @@ export default function SignupScreen() {
                             <View style={styles.inputContainer}>
                                 <Text style={styles.inputLabel}>Phone</Text>
                                 <View style={styles.phoneContainer}>
-                                    <View style={styles.countryCode}>
-                                        <Text style={styles.countryCodeText}>+1</Text>
+                                    <TouchableOpacity
+                                        style={styles.countryCode}
+                                        onPress={() => setIsCountryCodeModalVisible(true)}
+                                    >
+                                        <Text style={styles.countryCodeText}>{selectedCountryCode}</Text>
                                         <Ionicons name="chevron-down" size={16} color="#666" />
-                                    </View>
+                                    </TouchableOpacity>
                                     <TextInput
-                                        style={[styles.phoneInput, phoneError ? styles.inputError : null]} // Apply error styling conditionally
+                                        style={[styles.phoneInput, phoneError ? styles.inputError : null]}
                                         placeholder="1234567890"
                                         placeholderTextColor="#999"
                                         value={phone}
                                         onChangeText={(text) => {
                                             setPhone(text);
-                                            if (phoneError) setPhoneError(''); // Clear error when user starts typing
+                                            if (phoneError) setPhoneError('');
                                         }}
                                         onBlur={() => {
-                                            const phoneRegex = /^[0-9]{10}$/; // Basic phone validation for 10 digits
+                                            const phoneRegex = /^[0-9]{10}$/;
                                             if (!phoneRegex.test(phone)) {
-                                                setPhoneError('Please enter a valid phone number'); // Set error message
+                                                setPhoneError('Please enter a valid phone number');
                                             }
                                         }}
                                         keyboardType="phone-pad"
                                         autoCorrect={false}
                                     />
                                 </View>
-                                {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null} {/* Display error message */}
+                                {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
                             </View>
 
-                            {/* Age */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Age</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="30"
-                                    placeholderTextColor="#999"
-                                    keyboardType="numeric"
-                                    autoCorrect={false}
-                                />
-                            </View>
+                            {/* Country Code Modal */}
+                            <Modal
+                                visible={isCountryCodeModalVisible}
+                                transparent={true}
+                                animationType="slide"
+                            >
+                                <View style={styles.modalContainer}>
+                                    <FlatList
+                                        data={countryCodes}
+                                        keyExtractor={(item) => item.code}
+                                        renderItem={({ item }) => (
+                                            <TouchableOpacity
+                                                style={styles.modalItem}
+                                                onPress={() => {
+                                                    setSelectedCountryCode(item.code);
+                                                    setIsCountryCodeModalVisible(false);
+                                                }}
+                                            >
+                                                <Text style={styles.modalText}>
+                                                    {item.country} ({item.code})
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    />
+                                </View>
+                            </Modal>
 
                             {/* Email */}
                             <View style={styles.inputContainer}>
                                 <Text style={styles.inputLabel}>Email</Text>
                                 <TextInput
-                                    style={[styles.input, emailError ? styles.inputError : null]} // Apply error styling conditionally
+                                    style={[styles.input, emailError ? styles.inputError : null]}
                                     placeholder="johnuser@gmail.com"
                                     placeholderTextColor="#999"
                                     value={email}
                                     onChangeText={(text) => {
                                         setEmail(text);
-                                        if (emailError) setEmailError(''); // Clear error when user starts typing
+                                        if (emailError) setEmailError('');
                                     }}
                                     onBlur={() => {
                                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                                         if (!emailRegex.test(email)) {
-                                            setEmailError('Please enter a valid email address'); // Set error message
+                                            setEmailError('Please enter a valid email address');
                                         }
                                     }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                 />
-                                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null} {/* Display error message */}
+                                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
                             </View>
 
                             {/* Password */}
@@ -365,11 +435,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     inputError: {
-        borderColor: '#ff4444', // Red border for invalid input
+        borderColor: '#ff4444',
         borderWidth: 1.5,
     },
     errorText: {
-        color: '#ff4444', // Red text for error message
+        color: '#ff4444',
         fontSize: 12,
         marginTop: 4,
     },
@@ -463,5 +533,22 @@ const styles = StyleSheet.create({
         color: '#007AFF',
         fontSize: 14,
         fontWeight: '600',
+    },
+    modalContainer: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalItem: {
+        backgroundColor: '#fff',
+        padding: 16,
+        marginVertical: 4,
+        borderRadius: 8,
+        width: '80%',
+    },
+    modalText: {
+        fontSize: 16,
+        color: '#333',
     },
 });

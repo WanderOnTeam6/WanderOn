@@ -70,52 +70,87 @@ const countryCodes = [
 ];
 
 export default function SignupScreen() {
+    // Fields
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [age, setAge] = useState('');
     const [phone, setPhone] = useState('');
-    const [phoneError, setPhoneError] = useState('');
     const [email, setEmail] = useState('');
-    const [emailError, setEmailError] = useState('');
     const [password, setPassword] = useState('');
+
+    // Error states
+    const [firstNameError, setFirstNameError] = useState('');
+    const [lastNameError, setLastNameError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [phoneError, setPhoneError] = useState('');
+
     const [showPassword, setShowPassword] = useState(false);
     const [acceptTerms, setAcceptTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedCountryCode, setSelectedCountryCode] = useState('+1'); // Default country code
+
+    const [selectedCountryCode, setSelectedCountryCode] = useState('+1');
     const [isCountryCodeModalVisible, setIsCountryCodeModalVisible] = useState(false);
+
     const router = useRouter();
 
     function handleGoBack() {
         router.replace('/login');
     }
 
-    function handleArrow() {
-        router.replace('/login');
-    }
-
     async function handleSignup() {
-        if (!firstName || !lastName || !email || !password || !phone) {
-            Alert.alert('Missing fields', 'Please fill in all required fields.');
+        // Reset errors
+        setFirstNameError('');
+        setLastNameError('');
+        setEmailError('');
+        setPasswordError('');
+        setPhoneError('');
+
+        // Required
+        if (!firstName.trim()) {
+            setFirstNameError('First name is required');
             return;
         }
 
+        if (!lastName.trim()) {
+            setLastNameError('Last name is required');
+            return;
+        }
+
+        if (!email.trim()) {
+            setEmailError('Email is required');
+            return;
+        }
+
+        if (!password.trim()) {
+            setPasswordError('Password is required');
+            return;
+        }
+
+        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(email.trim())) {
             setEmailError('Please enter a valid email address');
             return;
         }
 
-        const phoneRegex = /^[0-9]{10}$/;
-        if (!phoneRegex.test(phone)) {
-            setPhoneError('Please enter a valid phone number');
-            return;
+        // Phone optional
+        if (phone.trim()) {
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phone.trim())) {
+                setPhoneError('Please enter a valid phone number');
+                return;
+            }
         }
 
+        // Terms
         if (!acceptTerms) {
             Alert.alert('Terms & Conditions', 'Please accept the terms and conditions to continue.');
             return;
         }
 
         setIsLoading(true);
+
         try {
             const res = await fetch(`${BASE}/auth/register`, {
                 method: 'POST',
@@ -125,17 +160,21 @@ export default function SignupScreen() {
                     lastName: lastName.trim(),
                     email: email.trim(),
                     password: password,
-                    phone: `${selectedCountryCode}${phone.trim()}`,
+                    phone: phone.trim() ? `${selectedCountryCode}${phone.trim()}` : '',
+                    age: age.trim() ? age.trim() : '',
                 }),
             });
-            const data = await res.json().catch(() => ({} as any));
-            if (!res.ok) throw new Error(data?.error || 'Sign up failed');
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                throw new Error(data?.message || data?.error || 'Sign up failed');
+            }
 
             setToken(data.token);
-
             router.replace('/signup-success');
-        } catch (e: any) {
-            Alert.alert('Sign up failed', e.message || 'Please try again');
+        } catch (err: any) {
+            Alert.alert('Sign up failed', err.message || 'Please try again');
         } finally {
             setIsLoading(false);
         }
@@ -156,10 +195,7 @@ export default function SignupScreen() {
                 >
                     <View style={styles.content}>
                         {/* Back Button */}
-                        <TouchableOpacity
-                            style={styles.backButton}
-                            onPress={handleArrow}
-                        >
+                        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
                             <Ionicons name="arrow-back" size={24} color="#333" />
                         </TouchableOpacity>
 
@@ -182,35 +218,57 @@ export default function SignupScreen() {
 
                         {/* Form */}
                         <View style={styles.formContainer}>
+
                             {/* First Name */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>First name</Text>
+                                <Text style={styles.inputLabel}>
+                                    First name <Text style={styles.required}>*</Text>
+                                </Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, firstNameError ? styles.inputError : null]}
                                     placeholder="John"
-                                    placeholderTextColor="#999"
+                                    placeholderTextColor="#D3D3D3"
                                     value={firstName}
-                                    onChangeText={setFirstName}
-                                    autoCapitalize="words"
-                                    autoCorrect={false}
+                                    onChangeText={(text) => {
+                                        setFirstName(text);
+                                        if (firstNameError) setFirstNameError('');
+                                    }}
                                 />
+                                {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
                             </View>
 
                             {/* Last Name */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Last name</Text>
+                                <Text style={styles.inputLabel}>
+                                    Last name <Text style={styles.required}>*</Text>
+                                </Text>
+                                <TextInput
+                                    style={[styles.input, lastNameError ? styles.inputError : null]}
+                                    placeholder="Doe"
+                                    placeholderTextColor="#D3D3D3"
+                                    value={lastName}
+                                    onChangeText={(text) => {
+                                        setLastName(text);
+                                        if (lastNameError) setLastNameError('');
+                                    }}
+                                />
+                                {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
+                            </View>
+
+                            {/* Age (optional) */}
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Age</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Doe"
-                                    placeholderTextColor="#999"
-                                    value={lastName}
-                                    onChangeText={setLastName}
-                                    autoCapitalize="words"
-                                    autoCorrect={false}
+                                    placeholder="e.g. 25"
+                                    placeholderTextColor="#D3D3D3"
+                                    keyboardType="numeric"
+                                    value={age}
+                                    onChangeText={setAge}
                                 />
                             </View>
 
-                            {/* Phone Number */}
+                            {/* Phone */}
                             <View style={styles.inputContainer}>
                                 <Text style={styles.inputLabel}>Phone</Text>
                                 <View style={styles.phoneContainer}>
@@ -221,23 +279,24 @@ export default function SignupScreen() {
                                         <Text style={styles.countryCodeText}>{selectedCountryCode}</Text>
                                         <Ionicons name="chevron-down" size={16} color="#666" />
                                     </TouchableOpacity>
+
                                     <TextInput
                                         style={[styles.phoneInput, phoneError ? styles.inputError : null]}
                                         placeholder="1234567890"
-                                        placeholderTextColor="#999"
+                                        placeholderTextColor="#D3D3D3"
                                         value={phone}
                                         onChangeText={(text) => {
                                             setPhone(text);
                                             if (phoneError) setPhoneError('');
                                         }}
                                         onBlur={() => {
+                                            if (!phone.trim()) return;
                                             const phoneRegex = /^[0-9]{10}$/;
-                                            if (!phoneRegex.test(phone)) {
+                                            if (!phoneRegex.test(phone.trim())) {
                                                 setPhoneError('Please enter a valid phone number');
                                             }
                                         }}
-                                        keyboardType="phone-pad"
-                                        autoCorrect={false}
+                                        keyboardType="number-pad"
                                     />
                                 </View>
                                 {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
@@ -246,7 +305,7 @@ export default function SignupScreen() {
                             {/* Country Code Modal */}
                             <Modal
                                 visible={isCountryCodeModalVisible}
-                                transparent={true}
+                                transparent
                                 animationType="slide"
                             >
                                 <View style={styles.modalContainer}>
@@ -272,42 +331,48 @@ export default function SignupScreen() {
 
                             {/* Email */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Email</Text>
+                                <Text style={styles.inputLabel}>
+                                    Email <Text style={styles.required}>*</Text>
+                                </Text>
                                 <TextInput
                                     style={[styles.input, emailError ? styles.inputError : null]}
                                     placeholder="johnuser@gmail.com"
-                                    placeholderTextColor="#999"
+                                    placeholderTextColor="#D3D3D3"
                                     value={email}
                                     onChangeText={(text) => {
                                         setEmail(text);
                                         if (emailError) setEmailError('');
                                     }}
                                     onBlur={() => {
+                                        if (!email.trim()) return;
                                         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                                        if (!emailRegex.test(email)) {
+                                        if (!emailRegex.test(email.trim())) {
                                             setEmailError('Please enter a valid email address');
                                         }
                                     }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
-                                    autoCorrect={false}
                                 />
                                 {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
                             </View>
 
                             {/* Password */}
                             <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Password</Text>
+                                <Text style={styles.inputLabel}>
+                                    Password <Text style={styles.required}>*</Text>
+                                </Text>
                                 <View style={styles.passwordContainer}>
                                     <TextInput
-                                        style={styles.passwordInput}
+                                        style={[styles.passwordInput, passwordError ? styles.inputError : null]}
                                         placeholder="••••••••"
-                                        placeholderTextColor="#999"
-                                        value={password}
-                                        onChangeText={setPassword}
+                                        placeholderTextColor="#D3D3D3"
                                         secureTextEntry={!showPassword}
+                                        value={password}
+                                        onChangeText={(text) => {
+                                            setPassword(text);
+                                            if (passwordError) setPasswordError('');
+                                        }}
                                         autoCapitalize="none"
-                                        autoCorrect={false}
                                     />
                                     <TouchableOpacity
                                         style={styles.eyeIcon}
@@ -320,9 +385,10 @@ export default function SignupScreen() {
                                         />
                                     </TouchableOpacity>
                                 </View>
+                                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
                             </View>
 
-                            {/* Terms & Conditions */}
+                            {/* Terms */}
                             <View style={styles.termsContainer}>
                                 <TouchableOpacity
                                     style={styles.checkbox}
@@ -340,7 +406,7 @@ export default function SignupScreen() {
                                 </Text>
                             </View>
 
-                            {/* Create Account Button */}
+                            {/* Button */}
                             <TouchableOpacity
                                 style={[styles.createButton, isLoading && styles.createButtonDisabled]}
                                 onPress={handleSignup}
@@ -351,13 +417,14 @@ export default function SignupScreen() {
                                 </Text>
                             </TouchableOpacity>
 
-                            {/* Already have account */}
+                            {/* Login */}
                             <View style={styles.loginContainer}>
                                 <Text style={styles.loginText}>Already have an account? </Text>
                                 <TouchableOpacity onPress={handleGoBack}>
                                     <Text style={styles.loginLink}>Go back</Text>
                                 </TouchableOpacity>
                             </View>
+
                         </View>
                     </View>
                 </ScrollView>
@@ -367,64 +434,27 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    keyboardAvoidingView: {
-        flex: 1,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-    },
-    content: {
-        paddingHorizontal: 24,
-        paddingBottom: 40,
-    },
-    backButton: {
-        marginTop: 20,
-        marginBottom: 20,
-        alignSelf: 'flex-start',
-    },
-    logoContainer: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    logo: {
-        width: 80,
-        height: 80,
-    },
-    headerContainer: {
-        alignItems: 'center',
-        marginBottom: 30,
-    },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#666',
-        textAlign: 'center',
-        lineHeight: 22,
-    },
-    formContainer: {
-        flex: 1,
-    },
-    inputContainer: {
-        marginBottom: 20,
-    },
-    inputLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#333',
-        marginBottom: 8,
-    },
+    container: { flex: 1, backgroundColor: '#fff' },
+    keyboardAvoidingView: { flex: 1 },
+    scrollView: { flex: 1 },
+    scrollContent: { flexGrow: 1 },
+    content: { paddingHorizontal: 24, paddingBottom: 40 },
+
+    backButton: { marginTop: 20, marginBottom: 20 },
+
+    logoContainer: { alignItems: 'center', marginBottom: 20 },
+    logo: { width: 80, height: 80 },
+
+    headerContainer: { alignItems: 'center', marginBottom: 30 },
+    title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+    subtitle: { fontSize: 16, color: '#666', textAlign: 'center' },
+
+    formContainer: { flex: 1 },
+
+    inputContainer: { marginBottom: 20 },
+    inputLabel: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 8 },
+    required: { color: '#ff4444' },
+
     input: {
         borderWidth: 1,
         borderColor: '#ddd',
@@ -443,6 +473,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginTop: 4,
     },
+
     phoneContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -459,17 +490,10 @@ const styles = StyleSheet.create({
         borderRightWidth: 1,
         borderRightColor: '#ddd',
     },
-    countryCodeText: {
-        fontSize: 16,
-        color: '#333',
-        marginRight: 8,
-    },
-    phoneInput: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-    },
+    countryCodeText: { fontSize: 16, color: '#333', marginRight: 8 },
+
+    phoneInput: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
+
     passwordContainer: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -478,33 +502,14 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         backgroundColor: '#fff',
     },
-    passwordInput: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-    },
-    eyeIcon: {
-        paddingHorizontal: 16,
-    },
-    termsContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 30,
-    },
-    checkbox: {
-        marginRight: 12,
-    },
-    termsText: {
-        flex: 1,
-        fontSize: 14,
-        color: '#666',
-        lineHeight: 20,
-    },
-    termsLink: {
-        color: '#007AFF',
-        textDecorationLine: 'underline',
-    },
+    passwordInput: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
+    eyeIcon: { paddingHorizontal: 16 },
+
+    termsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+    checkbox: { marginRight: 12 },
+    termsText: { fontSize: 14, color: '#666' },
+    termsLink: { color: '#007AFF', textDecorationLine: 'underline' },
+
     createButton: {
         backgroundColor: '#007AFF',
         borderRadius: 8,
@@ -512,31 +517,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 24,
     },
-    createButtonDisabled: {
-        backgroundColor: '#B0C4DE',
-    },
-    createButtonText: {
-        color: '#fff',
-        fontSize: 16,
-        fontWeight: '600',
-    },
-    loginContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    loginText: {
-        color: '#666',
-        fontSize: 14,
-    },
-    loginLink: {
-        color: '#007AFF',
-        fontSize: 14,
-        fontWeight: '600',
-    },
+    createButtonDisabled: { backgroundColor: '#B0C4DE' },
+    createButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+    loginContainer: { flexDirection: 'row', justifyContent: 'center' },
+    loginText: { color: '#666', fontSize: 14 },
+    loginLink: { color: '#007AFF', fontWeight: '600' },
+
     modalContainer: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -547,8 +537,5 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         width: '80%',
     },
-    modalText: {
-        fontSize: 16,
-        color: '#333',
-    },
+    modalText: { fontSize: 16, color: '#333' },
 });

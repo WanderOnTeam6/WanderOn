@@ -20,6 +20,7 @@ export default function SignupScreen() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
+    const [phoneError, setPhoneError] = useState(''); // State for phone validation error
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState(''); // State for email validation error
     const [password, setPassword] = useState('');
@@ -37,7 +38,7 @@ export default function SignupScreen() {
     }
 
     async function handleSignup() {
-        if (!firstName || !lastName || !email || !password) {
+        if (!firstName || !lastName || !email || !password || !phone) {
             Alert.alert('Missing fields', 'Please fill in all required fields.');
             return;
         }
@@ -46,6 +47,13 @@ export default function SignupScreen() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             setEmailError('Please enter a valid email address');
+            return;
+        }
+
+        // Phone number validation
+        const phoneRegex = /^[0-9]{10}$/; // Basic phone validation for 10 digits
+        if (!phoneRegex.test(phone)) {
+            setPhoneError('Please enter a valid phone number');
             return;
         }
 
@@ -159,15 +167,25 @@ export default function SignupScreen() {
                                         <Ionicons name="chevron-down" size={16} color="#666" />
                                     </View>
                                     <TextInput
-                                        style={styles.phoneInput}
-                                        placeholder="123 456 789"
+                                        style={[styles.phoneInput, phoneError ? styles.inputError : null]} // Apply error styling conditionally
+                                        placeholder="1234567890"
                                         placeholderTextColor="#999"
                                         value={phone}
-                                        onChangeText={setPhone}
+                                        onChangeText={(text) => {
+                                            setPhone(text);
+                                            if (phoneError) setPhoneError(''); // Clear error when user starts typing
+                                        }}
+                                        onBlur={() => {
+                                            const phoneRegex = /^[0-9]{10}$/; // Basic phone validation for 10 digits
+                                            if (!phoneRegex.test(phone)) {
+                                                setPhoneError('Please enter a valid phone number'); // Set error message
+                                            }
+                                        }}
                                         keyboardType="phone-pad"
                                         autoCorrect={false}
                                     />
                                 </View>
+                                {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null} {/* Display error message */}
                             </View>
 
                             {/* Age */}

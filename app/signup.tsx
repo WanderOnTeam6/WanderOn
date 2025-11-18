@@ -21,6 +21,7 @@ export default function SignupScreen() {
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
+    const [emailError, setEmailError] = useState(''); // State for email validation error
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [acceptTerms, setAcceptTerms] = useState(false);
@@ -38,6 +39,13 @@ export default function SignupScreen() {
     async function handleSignup() {
         if (!firstName || !lastName || !email || !password) {
             Alert.alert('Missing fields', 'Please fill in all required fields.');
+            return;
+        }
+
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setEmailError('Please enter a valid email address');
             return;
         }
 
@@ -178,15 +186,25 @@ export default function SignupScreen() {
                             <View style={styles.inputContainer}>
                                 <Text style={styles.inputLabel}>Email</Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, emailError ? styles.inputError : null]} // Apply error styling conditionally
                                     placeholder="johnuser@gmail.com"
                                     placeholderTextColor="#999"
                                     value={email}
-                                    onChangeText={setEmail}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        if (emailError) setEmailError(''); // Clear error when user starts typing
+                                    }}
+                                    onBlur={() => {
+                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                        if (!emailRegex.test(email)) {
+                                            setEmailError('Please enter a valid email address'); // Set error message
+                                        }
+                                    }}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoCorrect={false}
                                 />
+                                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null} {/* Display error message */}
                             </View>
 
                             {/* Password */}
@@ -327,6 +345,15 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         fontSize: 16,
         backgroundColor: '#fff',
+    },
+    inputError: {
+        borderColor: '#ff4444', // Red border for invalid input
+        borderWidth: 1.5,
+    },
+    errorText: {
+        color: '#ff4444', // Red text for error message
+        fontSize: 12,
+        marginTop: 4,
     },
     phoneContainer: {
         flexDirection: 'row',

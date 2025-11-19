@@ -429,7 +429,7 @@ export default function MapsPage() {
                             cursor: 'pointer',
                             fontWeight: 600,
                             position: 'absolute',
-                            right: 20,
+                            right: 50,
                             top: 16,
                         }}
                     >

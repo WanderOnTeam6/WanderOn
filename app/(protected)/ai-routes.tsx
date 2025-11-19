@@ -490,6 +490,8 @@ function loadWithBootstrap(key: string): Promise<void> {
     });
 }
 
+
+
 /** Styles */
 const styles: Record<string, React.CSSProperties> = {
     page: { height: "100vh", display: "grid", gridTemplateRows: "auto auto 1fr", background: "#f7f7f8" },
@@ -504,4 +506,8 @@ const styles: Record<string, React.CSSProperties> = {
     panel: { background: "white", border: "1px solid #e5e7eb", borderRadius: 12, padding: 12 },
     panelTitle: { fontWeight: 700, marginBottom: 8 },
     center: { display: "grid", placeItems: "center", height: "100vh", color: "#374151" },
+};
+
+export const unstable_settings = {
+    headerShown: false,
 };

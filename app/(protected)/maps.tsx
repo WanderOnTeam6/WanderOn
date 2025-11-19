@@ -37,6 +37,11 @@ export default function MapsPage() {
     const [textLoading, setTextLoading] = useState(false);
     const [textResults, setTextResults] = useState<TextResult[]>([]);
 
+    // Hotels near selected place
+    const [hotelLoading, setHotelLoading] = useState(false);
+    const [hotelResults, setHotelResults] = useState<TextResult[]>([]);
+
+
     // Current confirmed place (from Place.fetchFields)
     const [current, setCurrent] = useState<{
         placeId: string; name?: string; address?: string; location?: { lat: number; lng: number };
@@ -52,6 +57,10 @@ export default function MapsPage() {
     const [saving, setSaving] = useState(false);
     const [loadingItList, setLoadingItList] = useState(false);
     const [loadingItItems, setLoadingItItems] = useState(false);
+
+    // NEW: Panel accordion state
+    const [showExplore, setShowExplore] = useState(true);
+    const [showHotels, setShowHotels] = useState(false);
 
     // Keys (Expo)
     const apiKey =
@@ -258,6 +267,80 @@ export default function MapsPage() {
         }
     };
 
+    // ---------- Hotels near the currently selected place ----------
+    const runHotelSearch = async () => {
+        if (!g || !map) return;
+
+        if (!current?.location) {
+            alert("Pick a place first (click on the map or choose from search).");
+            return;
+        }
+
+        const google = g;
+
+        // Clear previous hotel markers
+        resultMarkersRef.current.forEach((rm) => rm.setMap && rm.setMap(null));
+        resultMarkersRef.current = [];
+
+        setHotelResults([]);
+        setHotelLoading(true);
+
+        try {
+            const service = new google.maps.places.PlacesService(map);
+            const req: any = {
+                location: current.location,
+                radius: 3000,      // ~3km radius
+                type: "lodging",   // hotels
+            };
+
+            service.nearbySearch(req, (results: any[], status: any) => {
+                setHotelLoading(false);
+
+                if (status !== google.maps.places.PlacesServiceStatus.OK || !results?.length) {
+                    setHotelResults([]);
+                    return;
+                }
+
+                const trimmed: TextResult[] = results.slice(0, 12).map((r: any) => ({
+                    place_id: r.place_id,
+                    name: r.name || "(Unnamed place)",
+                    address: r.vicinity || r.formatted_address,
+                    lat: r.geometry?.location?.lat?.(),
+                    lng: r.geometry?.location?.lng?.(),
+                }));
+
+                setHotelResults(trimmed);
+
+                const bounds = new google.maps.LatLngBounds();
+                trimmed.forEach((r, idx) => {
+                    if (r.lat != null && r.lng != null) {
+                        const pos = { lat: r.lat, lng: r.lng };
+                        bounds.extend(pos);
+
+                        const rm = new google.maps.Marker({
+                            map,
+                            position: pos,
+                            label: `${idx + 1}`,
+                        });
+
+                        rm.addListener("click", async () => {
+                            await fetchAndShowPlace(google, r.place_id, map, marker, setCurrent);
+                        });
+
+                        resultMarkersRef.current.push(rm);
+                    }
+                });
+
+                if (!bounds.isEmpty()) map.fitBounds(bounds);
+            });
+        } catch (e) {
+            console.error("Hotel search failed:", e);
+            setHotelLoading(false);
+        }
+    };
+
+
+
     // ---------- Add item (local) ----------
     const addToItinerary = () => {
         if (!current?.placeId) {
@@ -386,6 +469,12 @@ export default function MapsPage() {
         }
     };
 
+    const handleHotelClick = async (h: TextResult) => {
+        if (!g || !map || !marker) return;
+        await fetchAndShowPlace(g, h.place_id, map, marker, setCurrent);
+    };
+
+
 
     function slugifyName(name: string) {
         return (
@@ -510,57 +599,124 @@ export default function MapsPage() {
                     </div>
                 </div>
 
-                {/* Right panel: Selected + Text Search */}
+                {/* Right panel: Explore / Hotels accordions */}
                 <div style={styles.panel}>
-                    <div style={styles.detailsBox}>
-                        <div style={styles.detailsTitle}>Selected place</div>
-                        {current ? (
-                            <>
-                                <div style={styles.detailsLine}><strong>Name:</strong> {current.name || "(Unnamed place)"}</div>
-                                <div style={styles.detailsLine}><strong>Address:</strong> {current.address || "—"}</div>
-                                <div style={styles.detailsLine}><strong>Place ID:</strong> {current.placeId}</div>
-                            </>
-                        ) : (
-                            <div style={styles.empty}>Pick a place (map click, autocomplete, or text search).</div>
-                        )}
-                    </div>
+                    {/* Explore places accordion header */}
+                    <button
+                        type="button"
+                        style={styles.sectionHeader}
+                        onClick={() => setShowExplore((v) => !v)}
+                    >
+                        <span style={styles.sectionHeaderTitle}>Explore places</span>
+                        <span style={styles.sectionHeaderCaret}>{showExplore ? "▾" : "▸"}</span>
+                    </button>
 
-                    {/* Text Search box */}
-                    <div style={{ padding: 12, borderTop: "1px solid #eee" }}>
-                        <div style={styles.detailsTitle}>Text Search</div>
-                        <div style={{ display: "flex", gap: 8 }}>
-                            <input
-                                value={textQuery}
-                                onChange={(e) => setTextQuery(e.target.value)}
-                                placeholder='e.g. "best tacos near dallas"'
-                                style={{ ...styles.input, boxShadow: "none", height: 40 }}
-                            />
-                            <button onClick={runTextSearch} disabled={!textQuery || textLoading} style={styles.goBtn}>
-                                {textLoading ? "…" : "Go"}
-                            </button>
-                        </div>
+                    {/* Explore content (existing Selected place + Text Search) */}
+                    {showExplore && (
+                        <>
+                            <div style={styles.detailsBox}>
+                                <div style={styles.detailsTitle}>Selected place</div>
+                                {current ? (
+                                    <>
+                                        <div style={styles.detailsLine}><strong>Name:</strong> {current.name || "(Unnamed place)"}</div>
+                                        <div style={styles.detailsLine}><strong>Address:</strong> {current.address || "—"}</div>
+                                        <div style={styles.detailsLine}><strong>Place ID:</strong> {current.placeId}</div>
+                                    </>
+                                ) : (
+                                    <div style={styles.empty}>Pick a place (map click, autocomplete, or text search).</div>
+                                )}
+                            </div>
 
-                        {/* Text results */}
-                        <div style={{ marginTop: 10, maxHeight: 260, overflow: "auto" }}>
-                            {textResults.length === 0 ? (
-                                <div style={styles.empty}>No results yet.</div>
-                            ) : (
-                                textResults.map((r, i) => (
-                                    <button
-                                        key={r.place_id}
-                                        style={styles.resultRow}
-                                        onClick={() => fetchAndShowPlace(g!, r.place_id, map, marker, setCurrent)}
-                                    >
-                                        <span style={styles.resultIndex}>{i + 1}.</span>
-                                        <span>
-                                            <div style={{ fontWeight: 600 }}>{r.name}</div>
-                                            {r.address && <div style={{ fontSize: 12, color: "#6b7280" }}>{r.address}</div>}
-                                        </span>
+                            {/* Text Search box */}
+                            <div style={{ padding: 12, borderTop: "1px solid #eee" }}>
+                                <div style={styles.detailsTitle}>Text Search</div>
+                                <div style={{ display: "flex", gap: 8 }}>
+                                    <input
+                                        value={textQuery}
+                                        onChange={(e) => setTextQuery(e.target.value)}
+                                        placeholder='e.g. "best tacos near dallas"'
+                                        style={{ ...styles.input, boxShadow: "none", height: 40 }}
+                                    />
+                                    <button onClick={runTextSearch} disabled={!textQuery || textLoading} style={styles.goBtn}>
+                                        {textLoading ? "…" : "Go"}
                                     </button>
-                                ))
-                            )}
+                                </div>
+
+                                {/* Text results */}
+                                <div style={{ marginTop: 10, maxHeight: 260, overflow: "auto" }}>
+                                    {textResults.length === 0 ? (
+                                        <div style={styles.empty}>No results yet.</div>
+                                    ) : (
+                                        textResults.map((r, i) => (
+                                            <button
+                                                key={r.place_id}
+                                                style={styles.resultRow}
+                                                onClick={() => fetchAndShowPlace(g!, r.place_id, map, marker, setCurrent)}
+                                            >
+                                                <span style={styles.resultIndex}>{i + 1}.</span>
+                                                <span>
+                                                    <div style={{ fontWeight: 600 }}>{r.name}</div>
+                                                    {r.address && <div style={{ fontSize: 12, color: "#6b7280" }}>{r.address}</div>}
+                                                </span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Hotels accordion header */}
+                    <button
+                        type="button"
+                        style={styles.sectionHeader}
+                        onClick={() => setShowHotels((v) => !v)}
+                    >
+                        <span style={styles.sectionHeaderTitle}>Look for hotels</span>
+                        <span style={styles.sectionHeaderCaret}>{showHotels ? "▾" : "▸"}</span>
+                    </button>
+
+                    {/* Hotels content */}
+                    {showHotels && (
+                        <div style={{ padding: 12, borderTop: "1px solid #eee" }}>
+                            <div style={styles.detailsTitle}>Hotels near this place</div>
+
+                            <button
+                                onClick={runHotelSearch}
+                                disabled={hotelLoading || !current?.location}
+                                style={styles.hotelBtn}
+                            >
+                                {hotelLoading
+                                    ? "Searching hotels…"
+                                    : current?.location
+                                        ? "Find hotels nearby"
+                                        : "Pick a place first"}
+                            </button>
+
+                            <div style={{ marginTop: 10, maxHeight: 220, overflow: "auto" }}>
+                                {hotelResults.length === 0 ? (
+                                    <div style={styles.empty}>No hotels loaded yet.</div>
+                                ) : (
+                                    hotelResults.map((h, i) => (
+                                        <button
+                                            key={h.place_id}
+                                            style={styles.resultRow}
+                                            onClick={() => handleHotelClick(h)}
+                                        >
+                                            <span style={styles.resultIndex}>{i + 1}.</span>
+                                            <span>
+                                                <div style={{ fontWeight: 600 }}>{h.name}</div>
+                                                {h.address && (
+                                                    <div style={{ fontSize: 12, color: "#6b7280" }}>{h.address}</div>
+                                                )}
+                                            </span>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
                         </div>
-                    </div>
+                    )}
+
                 </div>
             </div>
 
@@ -608,6 +764,8 @@ export default function MapsPage() {
         </div>
     );
 }
+
+// ... rest of helpers & styles stay the same ...
 
 async function getDetailsLegacy(google: G, placeId: string, map: any) {
     return new Promise<{ name?: string; address?: string; loc?: any }>((resolve) => {
@@ -711,9 +869,6 @@ function loadWithBootstrap(key: string): Promise<G> {
         tick();
     });
 }
-
-
-
 
 /* ---------- styles ---------- */
 const styles: Record<string, React.CSSProperties> = {
@@ -840,7 +995,29 @@ const styles: Record<string, React.CSSProperties> = {
         boxShadow: "0 0 0 2px rgba(37,99,235,0.15)",
     },
 
-
+    // NEW: accordion header styles
+    sectionHeader: {
+        width: "100%",
+        border: "none",
+        outline: "none",
+        background: "#f9fafb",
+        padding: "10px 12px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        cursor: "pointer",
+        borderBottom: "1px solid #e5e7eb",
+    },
+    sectionHeaderTitle: {
+        fontSize: 14,
+        fontWeight: 600,
+        color: "#111827",
+    },
+    sectionHeaderCaret: {
+        fontSize: 14,
+        color: "#6b7280",
+        marginLeft: 8,
+    },
 
     // main
     top: { display: "grid", gridTemplateColumns: "1fr 420px", gap: 16, padding: 16, boxSizing: "border-box" },
@@ -889,6 +1066,17 @@ const styles: Record<string, React.CSSProperties> = {
     line: { padding: "4px 0", borderBottom: "1px dashed #eee", fontSize: 14, color: "#111827" },
 
     goBtn: { background: "#111827", color: "white", border: "none", borderRadius: 8, padding: "0 14px", height: 40, cursor: "pointer" },
+    hotelBtn: {
+        background: "#111827",
+        color: "white",
+        border: "none",
+        borderRadius: 8,
+        padding: "10px 14px",
+        cursor: "pointer",
+        width: "100%",
+        fontSize: 14,
+    },
+
     resultRow: { display: "flex", gap: 8, width: "100%", textAlign: "left", padding: "8px 10px", background: "white", border: "1px solid #eee", borderRadius: 8, marginBottom: 6, cursor: "pointer" },
     resultIndex: { width: 18, display: "inline-block", color: "#6b7280" },
 };

@@ -1,3 +1,4 @@
+import WeekCalendar from '@/components/WeekCalendar';
 import { api } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -34,6 +35,9 @@ export type ItineraryGroup = {
     _id: string;
     name: string;
     description?: string;
+    date?: string;
+    startDate?: string;
+    endDate?: string;
     members: Array<{
         userId: string;
         userName: string;
@@ -124,17 +128,31 @@ export default function GroupChatScreen() {
             console.log('Fetching group data for:', actualGroupId);
             // Fetch real group data from API
             const groupData = await api(`/share-itinerary/${actualGroupId}`) as any;
-            console.log('Retrieved group data:', groupData);
+            console.log('🔍 Retrieved group data from API:', groupData);
+            console.log('🗓️ Date fields in groupData:');
+            console.log('  date:', groupData.date);
+            console.log('  startDate:', groupData.startDate);
+            console.log('  endDate:', groupData.endDate);
             
-            setGroup({
+            const groupState = {
                 _id: groupData._id,
                 name: groupData.name,
                 description: groupData.description || '',
+                date: groupData.date || undefined,
+                startDate: groupData.startDate || undefined,
+                endDate: groupData.endDate || undefined,
                 members: groupData.members || [],
                 itineraryId: groupData.itineraryId,
                 createdAt: groupData.createdAt,
                 updatedAt: groupData.updatedAt
-            });
+            };
+            
+            console.log('🔍 Setting group state:', groupState);
+            console.log('🗓️ Date fields being set:');
+            console.log('  startDate:', groupState.startDate);
+            console.log('  endDate:', groupState.endDate);
+            
+            setGroup(groupState);
         } catch (error) {
             console.error('Failed to fetch group data:', error);
             Alert.alert('Error', 'Failed to load group information');
@@ -213,6 +231,12 @@ export default function GroupChatScreen() {
             return;
         }
 
+        // Check member limit
+        if ((group?.members?.length || 0) >= 20) {
+            Alert.alert('Group Full', 'This group has reached the maximum limit of 20 members. Please remove some members before adding new ones.');
+            return;
+        }
+
         setIsAddingMember(true);
         try {
             console.log('👥 Adding member with email:', memberEmail);
@@ -259,6 +283,8 @@ export default function GroupChatScreen() {
                 errorMessage = 'This user is already a member of the group.';
             } else if (error.message.includes('Only admins')) {
                 errorMessage = 'Only group admins can add new members.';
+            } else if (error.message.includes('maximum limit of 20 members')) {
+                errorMessage = 'Group has reached the maximum limit of 20 members.';
             }
             
             Alert.alert('Error', errorMessage);
@@ -369,9 +395,27 @@ export default function GroupChatScreen() {
                 
                 <View style={styles.headerInfo}>
                     <Text style={styles.groupName}>{group?.name}</Text>
-                    <Text style={styles.memberCount}>
-                        {group?.members.length} members
-                    </Text>
+                    <View style={styles.headerSubInfo}>
+                        <Text style={[
+                            styles.memberCount,
+                            (group?.members?.length || 0) >= 20 ? { color: '#FF3B30' } : {}
+                        ]}>
+                            {group?.members?.length || 0}/20 members
+                        </Text>
+                        {group?.date && (
+                            <>
+                                <Text style={styles.headerDivider}> • </Text>
+                                <Ionicons name="calendar-outline" size={14} color="#666" />
+                                <Text style={styles.dateText}>
+                                    {new Date(group.date).toLocaleDateString('en-US', { 
+                                        month: 'short', 
+                                        day: 'numeric',
+                                        year: 'numeric'
+                                    })}
+                                </Text>
+                            </>
+                        )}
+                    </View>
                 </View>
 
                 <View style={styles.headerButtons}>
@@ -390,6 +434,67 @@ export default function GroupChatScreen() {
                     </TouchableOpacity>
                 </View>
             </View>
+
+            {/* Trip Countdown */}
+            {group?.startDate && (() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset time to start of day
+                
+                const startDate = new Date(group.startDate);
+                startDate.setHours(0, 0, 0, 0); // Reset time to start of day
+                
+                const timeDiff = startDate.getTime() - today.getTime();
+                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                
+                console.log('🔢 Countdown calculation:');
+                console.log('  Today:', today.toDateString());
+                console.log('  Start date:', startDate.toDateString());
+                console.log('  Time diff (ms):', timeDiff);
+                console.log('  Days diff:', daysDiff);
+                
+                if (daysDiff > 0) {
+                    return (
+                        <View style={styles.countdownContainer}>
+                            <Ionicons name="time-outline" size={20} color="#007AFF" />
+                            <Text style={styles.countdownText}>
+                                {daysDiff === 1 ? 'Tomorrow!' : `${daysDiff} days to go!`}
+                            </Text>
+                        </View>
+                    );
+                } else if (daysDiff === 0) {
+                    return (
+                        <View style={styles.countdownContainer}>
+                            <Ionicons name="airplane" size={20} color="#34C759" />
+                            <Text style={[styles.countdownText, { color: '#34C759' }]}>
+                                Trip starts today! 🎉
+                            </Text>
+                        </View>
+                    );
+                } else if (group?.endDate) {
+                    const endDate = new Date(group.endDate);
+                    endDate.setHours(0, 0, 0, 0);
+                    const endTimeDiff = endDate.getTime() - today.getTime();
+                    const endDaysDiff = Math.ceil(endTimeDiff / (1000 * 3600 * 24));
+                    
+                    if (endDaysDiff >= 0) {
+                        return (
+                            <View style={styles.countdownContainer}>
+                                <Ionicons name="location" size={20} color="#FF9500" />
+                                <Text style={[styles.countdownText, { color: '#FF9500' }]}>
+                                    Trip in progress! {endDaysDiff === 0 ? 'Last day!' : `${endDaysDiff} days left`}
+                                </Text>
+                            </View>
+                        );
+                    }
+                }
+                return null;
+            })()}
+
+            {/* Week Calendar */}
+            <WeekCalendar 
+                tripStartDate={group?.startDate || ''} 
+                tripEndDate={group?.endDate || ''}
+            />
 
             {/* Messages */}
             <FlatList
@@ -531,10 +636,24 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#333',
     },
+    headerSubInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+        gap: 4,
+    },
     memberCount: {
         fontSize: 14,
         color: '#666',
-        marginTop: 2,
+    },
+    headerDivider: {
+        fontSize: 14,
+        color: '#999',
+    },
+    dateText: {
+        fontSize: 14,
+        color: '#666',
+        marginLeft: 4,
     },
     itineraryButton: {
         padding: 8,
@@ -771,5 +890,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         fontWeight: '600',
+    },
+    countdownContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f0f8ff',
+        marginHorizontal: 16,
+        marginTop: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#d1ecf1',
+    },
+    countdownText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#007AFF',
+        marginLeft: 8,
     },
 });

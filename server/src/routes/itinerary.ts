@@ -41,6 +41,42 @@ router.get('/', requireAuth, async (req, res) => {
     }
 });
 
+// POST /itinerary -> create a new itinerary
+router.post('/', requireAuth, async (req, res) => {
+    try {
+        const userId = req.userId!;
+        const { name, items = [] } = req.body as { name?: string; items: Item[] };
+        
+        // Generate a unique itinerary ID
+        const itineraryId = `itinerary-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Find or create user itineraries document
+        let doc = await UserItineraries.findById(userId);
+        if (!doc) {
+            doc = new UserItineraries({
+                _id: userId,
+                itineraries: []
+            });
+        }
+        
+        // Create new itinerary
+        const newItinerary = {
+            itineraryId,
+            name: name || itineraryId,
+            items: Array.isArray(items) ? items : [],
+            updatedAt: new Date(),
+        };
+        
+        (doc.itineraries as any[]).push(newItinerary);
+        await doc.save();
+        
+        return res.status(201).json({ itineraryId, name: newItinerary.name });
+    } catch (e: any) {
+        console.error('POST /itinerary error', e);
+        return res.status(500).json({ error: e?.message || 'Server error' });
+    }
+});
+
 // GET /itinerary/:itineraryId -> items for a specific itinerary
 router.get('/:itineraryId', requireAuth, async (req, res) => {
     try {

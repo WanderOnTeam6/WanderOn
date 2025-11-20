@@ -34,6 +34,9 @@ const ShareItinerarySchema = new Schema(
     {
         name: { type: String, required: true },
         description: { type: String, default: "" },
+        date: { type: Date, default: null }, // Optional trip date (legacy)
+        startDate: { type: Date, default: null }, // Trip start date
+        endDate: { type: Date, default: null }, // Trip end date
         members: { type: [GroupMemberSchema], default: [] },
         itineraryId: { type: String, required: true }, // Links to existing itinerary
         messages: { type: [ChatMessageSchema], default: [] },

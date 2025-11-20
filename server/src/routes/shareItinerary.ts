@@ -48,8 +48,10 @@ router.use(requireAuth);
 /* ---------- Create a new shared itinerary group ---------- */
 router.post('/', async (req, res) => {
     try {
-        const { name, description, itineraryId } = req.body;
+        const { name, description, date, startDate, endDate, itineraryId } = req.body;
         const userId = req.user?._id;
+
+        console.log('🔍 Creating group with data:', { name, description, date, startDate, endDate, itineraryId });
 
         if (!name || !itineraryId) {
             return res.status(400).json({ error: 'Name and itinerary ID are required' });
@@ -64,6 +66,9 @@ router.post('/', async (req, res) => {
         const shareGroup = new ShareItinerary({
             name,
             description: description || '',
+            date: date ? new Date(date) : null,
+            startDate: startDate ? new Date(startDate) : null,
+            endDate: endDate ? new Date(endDate) : null,
             itineraryId,
             createdBy: userId,
             members: [{
@@ -72,10 +77,13 @@ router.post('/', async (req, res) => {
             }]
         });
 
+        console.log('💾 About to save group:', shareGroup.toObject());
         await shareGroup.save();
+        console.log('✅ Group saved successfully');
         
         // Populate with user data before returning
         const populatedGroup = await populateGroupWithUserData(shareGroup);
+        console.log('📤 Returning populated group:', JSON.stringify(populatedGroup, null, 2));
         res.status(201).json(populatedGroup);
     } catch (error: any) {
         console.error('Error creating shared itinerary:', error);
@@ -149,6 +157,11 @@ router.post('/:groupId/members', async (req, res) => {
         const group = await ShareItinerary.findById(groupId);
         if (!group) {
             return res.status(404).json({ error: 'Group not found' });
+        }
+
+        // Check member limit (maximum 20 members)
+        if (group.members.length >= 20) {
+            return res.status(400).json({ error: 'Group has reached the maximum limit of 20 members' });
         }
 
         // Check if current user is admin
@@ -312,7 +325,7 @@ router.get('/:groupId/messages', async (req, res) => {
 router.put('/:groupId', async (req, res) => {
     try {
         const { groupId } = req.params;
-        const { name, description } = req.body;
+        const { name, description, date } = req.body;
         const userId = req.user?._id;
 
         const group = await ShareItinerary.findById(groupId);
@@ -330,6 +343,7 @@ router.put('/:groupId', async (req, res) => {
 
         if (name) group.name = name;
         if (description !== undefined) group.description = description;
+        if (date !== undefined) group.date = date ? new Date(date) : null;
 
         await group.save();
         

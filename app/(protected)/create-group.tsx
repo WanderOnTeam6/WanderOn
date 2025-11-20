@@ -1,7 +1,7 @@
 import { api } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     Alert,
     KeyboardAvoidingView,
@@ -17,10 +17,14 @@ import {
 
 export default function CreateGroupScreen() {
     const router = useRouter();
+    const startDateInputRef = useRef<HTMLInputElement>(null);
+    const endDateInputRef = useRef<HTMLInputElement>(null);
     
     // State management
     const [destination, setDestination] = useState('');
     const [groupDescription, setGroupDescription] = useState('');
+    const [tripStartDate, setTripStartDate] = useState('');
+    const [tripEndDate, setTripEndDate] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
     const validateInputs = () => {
@@ -87,6 +91,8 @@ export default function CreateGroupScreen() {
             const groupData = {
                 name: destination.trim(),
                 description: groupDescription.trim() || `Collaborative planning for ${destination}`,
+                startDate: tripStartDate || null,
+                endDate: tripEndDate || null,
                 itineraryId: itineraryResponse.itineraryId,
                 // Initialize with proper data structure
                 members: [], // Will be auto-populated by the API with creator as admin
@@ -230,6 +236,139 @@ export default function CreateGroupScreen() {
                             <Text style={styles.characterCount}>
                                 {groupDescription.length}/200
                             </Text>
+                        </View>
+
+                        {/* Trip Date Range */}
+                        <View style={styles.inputSection}>
+                            <Text style={styles.label}>Trip Dates (Optional)</Text>
+                            
+                            {/* Start Date */}
+                            <View style={styles.dateRangeContainer}>
+                                <View style={styles.dateInputContainer}>
+                                    <Text style={styles.dateLabel}>Start Date</Text>
+                                    <TouchableOpacity 
+                                        style={[styles.datePickerButton, styles.dateRangeButton]}
+                                        onPress={() => startDateInputRef.current?.showPicker()}
+                                    >
+                                        <Ionicons name="calendar-outline" size={20} color="#007AFF" />
+                                        <Text style={[styles.datePickerText, styles.dateRangeText]}>
+                                            {tripStartDate ? (() => {
+                                                const date = new Date(tripStartDate + 'T00:00:00');
+                                                return date.toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric' 
+                                                });
+                                            })() : 'Start'}
+                                        </Text>
+                                        {tripStartDate && (
+                                            <TouchableOpacity 
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    setTripStartDate('');
+                                                }}
+                                                style={styles.clearDateButton}
+                                            >
+                                                <Ionicons name="close-circle" size={16} color="#999" />
+                                            </TouchableOpacity>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.dateRangeSeparator}>
+                                    <Text style={styles.dateRangeSeparatorText}>to</Text>
+                                </View>
+
+                                {/* End Date */}
+                                <View style={styles.dateInputContainer}>
+                                    <Text style={styles.dateLabel}>End Date</Text>
+                                    <TouchableOpacity 
+                                        style={[styles.datePickerButton, styles.dateRangeButton]}
+                                        onPress={() => endDateInputRef.current?.showPicker()}
+                                    >
+                                        <Ionicons name="calendar-outline" size={20} color="#007AFF" />
+                                        <Text style={[styles.datePickerText, styles.dateRangeText]}>
+                                            {tripEndDate ? (() => {
+                                                const date = new Date(tripEndDate + 'T00:00:00');
+                                                return date.toLocaleDateString('en-US', { 
+                                                    month: 'short', 
+                                                    day: 'numeric' 
+                                                });
+                                            })() : 'End'}
+                                        </Text>
+                                        {tripEndDate && (
+                                            <TouchableOpacity 
+                                                onPress={(e) => {
+                                                    e.stopPropagation();
+                                                    setTripEndDate('');
+                                                }}
+                                                style={styles.clearDateButton}
+                                            >
+                                                <Ionicons name="close-circle" size={16} color="#999" />
+                                            </TouchableOpacity>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Display full date range when both dates are selected */}
+                            {tripStartDate && tripEndDate && (
+                                <View style={styles.dateRangeDisplay}>
+                                    <Ionicons name="time-outline" size={16} color="#007AFF" />
+                                    <Text style={styles.dateRangeDisplayText}>
+                                        {(() => {
+                                            const startDate = new Date(tripStartDate + 'T00:00:00');
+                                            const endDate = new Date(tripEndDate + 'T00:00:00');
+                                            return `${startDate.toLocaleDateString('en-US', { 
+                                                weekday: 'short',
+                                                month: 'short', 
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })} - ${endDate.toLocaleDateString('en-US', { 
+                                                weekday: 'short',
+                                                month: 'short', 
+                                                day: 'numeric',
+                                                year: 'numeric'
+                                            })}`;
+                                        })()} 
+                                    </Text>
+                                </View>
+                            )}
+                            
+                            {/* Hidden native date inputs */}
+                            <input
+                                ref={startDateInputRef as any}
+                                type="date"
+                                value={tripStartDate}
+                                onChange={(e: any) => {
+                                    setTripStartDate(e.target.value);
+                                    // Clear end date if it's before start date
+                                    if (tripEndDate && e.target.value > tripEndDate) {
+                                        setTripEndDate('');
+                                    }
+                                }}
+                                min={new Date().toISOString().split('T')[0]}
+                                style={{
+                                    position: 'absolute',
+                                    opacity: 0,
+                                    pointerEvents: 'none',
+                                    width: 0,
+                                    height: 0,
+                                }}
+                            />
+                            <input
+                                ref={endDateInputRef as any}
+                                type="date"
+                                value={tripEndDate}
+                                onChange={(e: any) => setTripEndDate(e.target.value)}
+                                min={tripStartDate || new Date().toISOString().split('T')[0]}
+                                style={{
+                                    position: 'absolute',
+                                    opacity: 0,
+                                    pointerEvents: 'none',
+                                    width: 0,
+                                    height: 0,
+                                }}
+                            />
                         </View>
 
                         {/* Info Card */}
@@ -387,5 +526,68 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#fff',
         marginLeft: 8,
+    },
+    datePickerButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#e1e5e9',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#fff',
+        gap: 12,
+    },
+    datePickerText: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    clearDateButton: {
+        padding: 4,
+    },
+    dateRangeContainer: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 12,
+    },
+    dateInputContainer: {
+        flex: 1,
+    },
+    dateLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#666',
+        marginBottom: 6,
+    },
+    dateRangeButton: {
+        flex: 1,
+    },
+    dateRangeText: {
+        fontSize: 14,
+    },
+    dateRangeSeparator: {
+        paddingBottom: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    dateRangeSeparatorText: {
+        fontSize: 14,
+        color: '#666',
+        fontWeight: '500',
+    },
+    dateRangeDisplay: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f0f8ff',
+        padding: 12,
+        borderRadius: 8,
+        marginTop: 12,
+        gap: 8,
+    },
+    dateRangeDisplayText: {
+        fontSize: 14,
+        color: '#007AFF',
+        fontWeight: '500',
     },
 });

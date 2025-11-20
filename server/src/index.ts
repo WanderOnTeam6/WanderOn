@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import authRouter from './auth';
 import { User } from './models/User';
 import itineraryRouter from './routes/itinerary'; // <-- ADD
+import shareItineraryRouter from './routes/shareItinerary';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.get('/ping', (_req, res) => res.json({ ok: true }));
 
 app.use('/auth', authRouter);
 app.use('/itinerary', itineraryRouter); // <-- ensure this line exists
+app.use('/share-itinerary', shareItineraryRouter);
 
 // Debug endpoint (optional)
 app.get('/debug/db', async (_req, res) => {

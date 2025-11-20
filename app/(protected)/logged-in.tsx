@@ -88,19 +88,26 @@ export default function LoggedInScreen() {
         }
     }).current;
 
-    // Auto-advance slideshow
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const nextIndex = (currentIndex + 1) % featuresData.length;
-            console.log(`Auto-advancing to index: ${nextIndex}`);
-            setCurrentIndex(nextIndex);
-            flatListRef.current?.scrollToOffset({
-                offset: nextIndex * CARD_WITH_SPACING,
-                animated: true,
-            });
-        }, 4000);
-        return () => clearInterval(interval);
-    }, [currentIndex]);
+    // Navigation functions
+    const goToNextSlide = () => {
+        const nextIndex = (currentIndex + 1) % featuresData.length;
+        console.log(`Navigating to index: ${nextIndex}`);
+        setCurrentIndex(nextIndex);
+        flatListRef.current?.scrollToOffset({
+            offset: nextIndex * CARD_WITH_SPACING,
+            animated: true,
+        });
+    };
+
+    const goToPreviousSlide = () => {
+        const prevIndex = (currentIndex - 1 + featuresData.length) % featuresData.length;
+        console.log(`Navigating to index: ${prevIndex}`);
+        setCurrentIndex(prevIndex);
+        flatListRef.current?.scrollToOffset({
+            offset: prevIndex * CARD_WITH_SPACING,
+            animated: true,
+        });
+    };
 
     // Load & log userId
     useEffect(() => {
@@ -279,26 +286,44 @@ export default function LoggedInScreen() {
                             Welcome Back! Discover What's New
                         </ThemedText>
 
-                        <FlatList
-                            ref={flatListRef}
-                            data={featuresData}
-                            renderItem={renderFeatureSlide}
-                            keyExtractor={(item) => item.heading}
-                            horizontal
-                            pagingEnabled={false}
-                            showsHorizontalScrollIndicator={false}
-                            snapToInterval={CARD_WITH_SPACING}
-                            snapToAlignment="center"
-                            decelerationRate="fast"
-                            contentContainerStyle={{
-                                paddingHorizontal: (screenWidth - CARD_WIDTH) / 2,
-                            }}
-                            bounces={false}
-                            getItemLayout={getItemLayout}
-                            viewabilityConfig={viewabilityConfig}
-                            onViewableItemsChanged={onViewableItemsChanged}
-                            style={styles.slideshow}
-                        />
+                        <View style={styles.slideshowContainer}>
+                            <TouchableOpacity
+                                style={styles.arrowButton}
+                                onPress={goToPreviousSlide}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="chevron-back" size={28} color="#007AFF" />
+                            </TouchableOpacity>
+
+                            <FlatList
+                                ref={flatListRef}
+                                data={featuresData}
+                                renderItem={renderFeatureSlide}
+                                keyExtractor={(item) => item.heading}
+                                horizontal
+                                pagingEnabled={false}
+                                showsHorizontalScrollIndicator={false}
+                                snapToInterval={CARD_WITH_SPACING}
+                                snapToAlignment="center"
+                                decelerationRate="fast"
+                                contentContainerStyle={{
+                                    paddingHorizontal: (screenWidth - CARD_WIDTH) / 2,
+                                }}
+                                bounces={false}
+                                getItemLayout={getItemLayout}
+                                viewabilityConfig={viewabilityConfig}
+                                onViewableItemsChanged={onViewableItemsChanged}
+                                style={styles.slideshow}
+                            />
+
+                            <TouchableOpacity
+                                style={styles.arrowButton}
+                                onPress={goToNextSlide}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="chevron-forward" size={28} color="#007AFF" />
+                            </TouchableOpacity>
+                        </View>
 
                         <ProgressDots currentIndex={currentIndex} total={featuresData.length} />
                     </View>
@@ -332,7 +357,7 @@ export default function LoggedInScreen() {
                     <View style={styles.footer}>
                         <TouchableOpacity
                             style={styles.actionButton}
-                            onPress={() => handleViewTrips('View Trips')}
+                            onPress={handleViewTrips}
                         >
                             <Ionicons name="map-outline" size={24} color="#fff" />
                             <ThemedText style={styles.actionText}>View Trips</ThemedText>
@@ -427,9 +452,32 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 32,
     },
+    slideshowContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: screenWidth,
+        height: slideHeight + 40,
+    },
     slideshow: {
         height: slideHeight + 40,
-        width: screenWidth,
+        flex: 1,
+    },
+    arrowButton: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(0,122,255,0.2)',
     },
     slideCard: {
         width: CARD_WIDTH,

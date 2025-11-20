@@ -221,8 +221,25 @@ export default function GroupChatScreen() {
     };
 
     const navigateToItinerary = () => {
-        // TODO: Navigate to itinerary view/edit page
-        Alert.alert('Navigate to Itinerary', 'This will open the shared itinerary');
+        if (group?.itineraryId) {
+            console.log('🗺️ Navigating to itinerary:', group.itineraryId);
+            router.push({
+                pathname: '/view-trips',
+                params: { itineraryId: group.itineraryId }
+            } as any);
+        } else {
+            Alert.alert('Error', 'No itinerary found for this group');
+        }
+    };
+
+    const navigateToBudgetSplit = () => {
+        if (actualGroupId) {
+            console.log('💰 Navigating to budget split for group:', actualGroupId);
+            // TODO: Navigate to budget split page when it's implemented
+            Alert.alert('Budget Split', `Budget splitting feature for group "${group?.name}" coming soon!`);
+        } else {
+            Alert.alert('Error', 'No group ID found');
+        }
     };
 
     const addMember = async () => {
@@ -431,6 +448,13 @@ export default function GroupChatScreen() {
                         onPress={navigateToItinerary}
                     >
                         <Ionicons name="map" size={24} color="#007AFF" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={styles.headerButton}
+                        onPress={navigateToBudgetSplit}
+                    >
+                        <Ionicons name="wallet" size={24} color="#007AFF" />
                     </TouchableOpacity>
                 </View>
             </View>

@@ -21,6 +21,7 @@ export default function RootLayout() {
 
         {/* Protected group */}
         <Stack.Screen name="(protected)" options={{ headerShown: false }} />
+        <Stack.Screen name="ai-routes" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

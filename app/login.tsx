@@ -112,85 +112,99 @@ export default function LoginScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.content}>
-                        <View style={styles.logoContainer}>
-                            <Image
-                                source={require('@/assets/images/Logo.png')}
-                                style={styles.logo}
-                                resizeMode="contain"
-                            />
-                        </View>
+                        {/* Centered card */}
+                        <View style={styles.card}>
+                            <View style={styles.logoContainer}>
+                                <Image
+                                    source={require('@/assets/images/Logo.png')}
+                                    style={styles.logo}
+                                    resizeMode="contain"
+                                />
+                            </View>
 
-                        <View style={styles.welcomeContainer}>
-                            <Text style={styles.welcomeTitle}>Welcome to WanderOn</Text>
-                            <Text style={styles.welcomeSubtitle}>Please choose your login option below</Text>
-                        </View>
+                            <View style={styles.welcomeContainer}>
+                                <Text style={styles.welcomeTitle}>Welcome to WanderOn</Text>
+                                <Text style={styles.welcomeSubtitle}>
+                                    Please choose your login option below
+                                </Text>
+                            </View>
 
-                        {/* Email Input */}
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>Email</Text>
-                            <TextInput
-                                style={[styles.input, emailError ? styles.inputError : null]}
-                                placeholder="Enter your email address"
-                                placeholderTextColor="#999"
-                                value={email}
-                                onChangeText={(text) => {
-                                    setEmail(text);
-                                    if (emailError) setEmailError('');
-                                }}
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
-                            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-                        </View>
-
-                        {/* Password Input */}
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>Password</Text>
-                            <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
+                            {/* Email Input */}
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Email</Text>
                                 <TextInput
-                                    style={styles.passwordInput}
-                                    placeholder="Enter your password"
+                                    style={[styles.input, emailError ? styles.inputError : null]}
+                                    placeholder="Enter your email address"
                                     placeholderTextColor="#999"
-                                    value={password}
+                                    value={email}
                                     onChangeText={(text) => {
-                                        setPassword(text);
-                                        if (passwordError) setPasswordError('');
+                                        setEmail(text);
+                                        if (emailError) setEmailError('');
                                     }}
-                                    secureTextEntry={!showPassword}
+                                    keyboardType="email-address"
                                     autoCapitalize="none"
                                 />
-                                <TouchableOpacity
-                                    style={styles.eyeIcon}
-                                    onPress={() => setShowPassword(!showPassword)}
-                                >
-                                    <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={20} color="#666" />
-                                </TouchableOpacity>
+                                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
                             </View>
-                            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
+                            {/* Password Input */}
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Password</Text>
+                                <View style={[styles.passwordContainer, passwordError ? styles.inputError : null]}>
+                                    <TextInput
+                                        style={styles.passwordInput}
+                                        placeholder="Enter your password"
+                                        placeholderTextColor="#999"
+                                        value={password}
+                                        onChangeText={(text) => {
+                                            setPassword(text);
+                                            if (passwordError) setPasswordError('');
+                                        }}
+                                        secureTextEntry={!showPassword}
+                                        autoCapitalize="none"
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowPassword(!showPassword)}
+                                    >
+                                        <Ionicons
+                                            name={showPassword ? 'eye-off' : 'eye'}
+                                            size={20}
+                                            color="#666"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+                            </View>
+
+                            {/* Login Button */}
+                            <TouchableOpacity
+                                style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+                                onPress={handleLogin}
+                                disabled={isLoading}
+                            >
+                                <Text style={styles.loginButtonText}>
+                                    {isLoading ? 'Signing you in...' : 'Sign In'}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Create Account Button */}
+                            <TouchableOpacity
+                                style={[styles.loginButton, { backgroundColor: '#34C759' }]}
+                                onPress={() => router.replace('/signup')}
+                            >
+                                <Text style={styles.loginButtonText}>Create Account</Text>
+                            </TouchableOpacity>
+
+                            {/* Logout test button (kept commented)
+                            <TouchableOpacity
+                                style={[styles.loginButton, { backgroundColor: '#ff3b30' }]}
+                                onPress={handleLogout}
+                            >
+                                <Text style={styles.loginButtonText}>Log Out (Test)</Text>
+                            </TouchableOpacity>
+                            */}
                         </View>
-
-                        {/* Login Button */}
-                        <TouchableOpacity
-                            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-                            onPress={handleLogin}
-                            disabled={isLoading}
-                        >
-                            <Text style={styles.loginButtonText}>
-                                {isLoading ? 'Signing you in...' : 'Sign In'}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={[styles.loginButton, { backgroundColor: '#34C759' }]}
-                            onPress={() => router.replace('/signup')}
-                        >
-                            <Text style={styles.loginButtonText}>Create Account</Text>
-                        </TouchableOpacity>
-
-                        {/* Logout Button (for testing now)
-                        <TouchableOpacity style={[styles.loginButton, { backgroundColor: '#ff3b30' }]} onPress={handleLogout}>
-                            <Text style={styles.loginButtonText}>Log Out (Test)</Text>
-                        </TouchableOpacity> */}
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -199,16 +213,39 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: '#f5f7fa' },
     keyboardAvoidingView: { flex: 1 },
     scrollView: { flex: 1 },
-    scrollContent: { flexGrow: 1, paddingBottom: 40 },
-    content: { flex: 1, paddingHorizontal: 24, paddingTop: 20 },
-    logoContainer: { alignItems: 'center', marginBottom: 30 },
+    scrollContent: {
+        flexGrow: 1,
+        paddingTop: 50,
+        paddingBottom: 40,
+        justifyContent: 'center', // center vertically
+    },
+    content: {
+        flex: 1,
+        paddingHorizontal: 24,
+        alignItems: 'center',
+    },
+    // Centered card with max width
+    card: {
+        width: '100%',
+        maxWidth: 480,
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    logoContainer: { alignItems: 'center', marginBottom: 24 },
     logo: { width: 120, height: 120 },
-    welcomeContainer: { alignItems: 'center', marginBottom: 40 },
+    welcomeContainer: { alignItems: 'center', marginBottom: 32 },
     welcomeTitle: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-    welcomeSubtitle: { fontSize: 16, color: '#666' },
+    welcomeSubtitle: { fontSize: 16, color: '#666', textAlign: 'center' },
     inputContainer: { marginBottom: 20 },
     inputLabel: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 8 },
     input: {

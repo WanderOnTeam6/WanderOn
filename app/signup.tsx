@@ -1,3 +1,4 @@
+// app/signup.tsx
 import { BASE, setToken } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -106,7 +107,6 @@ export default function SignupScreen() {
         setPasswordError('');
         setPhoneError('');
 
-        // Required
         if (!firstName.trim()) {
             setFirstNameError('First name is required');
             return;
@@ -127,14 +127,12 @@ export default function SignupScreen() {
             return;
         }
 
-        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email.trim())) {
             setEmailError('Please enter a valid email address');
             return;
         }
 
-        // Phone optional
         if (phone.trim()) {
             const phoneRegex = /^[0-9]{10}$/;
             if (!phoneRegex.test(phone.trim())) {
@@ -143,7 +141,6 @@ export default function SignupScreen() {
             }
         }
 
-        // Terms
         if (!acceptTerms) {
             Alert.alert('Terms & Conditions', 'Please accept the terms and conditions to continue.');
             return;
@@ -193,238 +190,240 @@ export default function SignupScreen() {
                     showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
+                    {/* Center wrapper */}
                     <View style={styles.content}>
-                        {/* Back Button */}
-                        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-                            <Ionicons name="arrow-back" size={24} color="#333" />
-                        </TouchableOpacity>
-
-                        {/* Logo */}
-                        <View style={styles.logoContainer}>
-                            <Image
-                                source={require('@/assets/images/Logo.png')}
-                                style={styles.logo}
-                                resizeMode="contain"
-                            />
-                        </View>
-
-                        {/* Header */}
-                        <View style={styles.headerContainer}>
-                            <Text style={styles.title}>Create account</Text>
-                            <Text style={styles.subtitle}>
-                                Get the best out of wanderon by creating an account
-                            </Text>
-                        </View>
-
-                        {/* Form */}
-                        <View style={styles.formContainer}>
-
-                            {/* First Name */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>
-                                    First name <Text style={styles.required}>*</Text>
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, firstNameError ? styles.inputError : null]}
-                                    placeholder="John"
-                                    placeholderTextColor="#D3D3D3"
-                                    value={firstName}
-                                    onChangeText={(text) => {
-                                        setFirstName(text);
-                                        if (firstNameError) setFirstNameError('');
-                                    }}
-                                />
-                                {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
-                            </View>
-
-                            {/* Last Name */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>
-                                    Last name <Text style={styles.required}>*</Text>
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, lastNameError ? styles.inputError : null]}
-                                    placeholder="Doe"
-                                    placeholderTextColor="#D3D3D3"
-                                    value={lastName}
-                                    onChangeText={(text) => {
-                                        setLastName(text);
-                                        if (lastNameError) setLastNameError('');
-                                    }}
-                                />
-                                {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
-                            </View>
-
-                            {/* Age (optional) */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Age</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. 25"
-                                    placeholderTextColor="#D3D3D3"
-                                    keyboardType="numeric"
-                                    value={age}
-                                    onChangeText={setAge}
-                                />
-                            </View>
-
-                            {/* Phone */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>Phone</Text>
-                                <View style={styles.phoneContainer}>
-                                    <TouchableOpacity
-                                        style={styles.countryCode}
-                                        onPress={() => setIsCountryCodeModalVisible(true)}
-                                    >
-                                        <Text style={styles.countryCodeText}>{selectedCountryCode}</Text>
-                                        <Ionicons name="chevron-down" size={16} color="#666" />
-                                    </TouchableOpacity>
-
-                                    <TextInput
-                                        style={[styles.phoneInput, phoneError ? styles.inputError : null]}
-                                        placeholder="1234567890"
-                                        placeholderTextColor="#D3D3D3"
-                                        value={phone}
-                                        onChangeText={(text) => {
-                                            setPhone(text);
-                                            if (phoneError) setPhoneError('');
-                                        }}
-                                        onBlur={() => {
-                                            if (!phone.trim()) return;
-                                            const phoneRegex = /^[0-9]{10}$/;
-                                            if (!phoneRegex.test(phone.trim())) {
-                                                setPhoneError('Please enter a valid phone number');
-                                            }
-                                        }}
-                                        keyboardType="number-pad"
-                                    />
-                                </View>
-                                {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
-                            </View>
-
-                            {/* Country Code Modal */}
-                            <Modal
-                                visible={isCountryCodeModalVisible}
-                                transparent
-                                animationType="slide"
-                            >
-                                <View style={styles.modalContainer}>
-                                    <FlatList
-                                        data={countryCodes}
-                                        keyExtractor={(item) => item.code}
-                                        renderItem={({ item }) => (
-                                            <TouchableOpacity
-                                                style={styles.modalItem}
-                                                onPress={() => {
-                                                    setSelectedCountryCode(item.code);
-                                                    setIsCountryCodeModalVisible(false);
-                                                }}
-                                            >
-                                                <Text style={styles.modalText}>
-                                                    {item.country} ({item.code})
-                                                </Text>
-                                            </TouchableOpacity>
-                                        )}
-                                    />
-                                </View>
-                            </Modal>
-
-                            {/* Email */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>
-                                    Email <Text style={styles.required}>*</Text>
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, emailError ? styles.inputError : null]}
-                                    placeholder="johnuser@gmail.com"
-                                    placeholderTextColor="#D3D3D3"
-                                    value={email}
-                                    onChangeText={(text) => {
-                                        setEmail(text);
-                                        if (emailError) setEmailError('');
-                                    }}
-                                    onBlur={() => {
-                                        if (!email.trim()) return;
-                                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                                        if (!emailRegex.test(email.trim())) {
-                                            setEmailError('Please enter a valid email address');
-                                        }
-                                    }}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
-                                {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-                            </View>
-
-                            {/* Password */}
-                            <View style={styles.inputContainer}>
-                                <Text style={styles.inputLabel}>
-                                    Password <Text style={styles.required}>*</Text>
-                                </Text>
-                                <View style={styles.passwordContainer}>
-                                    <TextInput
-                                        style={[styles.passwordInput, passwordError ? styles.inputError : null]}
-                                        placeholder="••••••••"
-                                        placeholderTextColor="#D3D3D3"
-                                        secureTextEntry={!showPassword}
-                                        value={password}
-                                        onChangeText={(text) => {
-                                            setPassword(text);
-                                            if (passwordError) setPasswordError('');
-                                        }}
-                                        autoCapitalize="none"
-                                    />
-                                    <TouchableOpacity
-                                        style={styles.eyeIcon}
-                                        onPress={() => setShowPassword(!showPassword)}
-                                    >
-                                        <Ionicons
-                                            name={showPassword ? 'eye-off' : 'eye'}
-                                            size={20}
-                                            color="#666"
-                                        />
-                                    </TouchableOpacity>
-                                </View>
-                                {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-                            </View>
-
-                            {/* Terms */}
-                            <View style={styles.termsContainer}>
-                                <TouchableOpacity
-                                    style={styles.checkbox}
-                                    onPress={() => setAcceptTerms(!acceptTerms)}
-                                >
-                                    <Ionicons
-                                        name={acceptTerms ? 'checkbox' : 'square-outline'}
-                                        size={20}
-                                        color={acceptTerms ? '#007AFF' : '#666'}
-                                    />
-                                </TouchableOpacity>
-                                <Text style={styles.termsText}>
-                                    I accept{' '}
-                                    <Text style={styles.termsLink}>terms and condition</Text>
-                                </Text>
-                            </View>
-
-                            {/* Button */}
-                            <TouchableOpacity
-                                style={[styles.createButton, isLoading && styles.createButtonDisabled]}
-                                onPress={handleSignup}
-                                disabled={isLoading}
-                            >
-                                <Text style={styles.createButtonText}>
-                                    {isLoading ? 'Creating Account...' : 'Create Account'}
-                                </Text>
+                        {/* Card */}
+                        <View style={styles.card}>
+                            {/* Back Button */}
+                            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+                                <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
 
-                            {/* Login */}
-                            <View style={styles.loginContainer}>
-                                <Text style={styles.loginText}>Already have an account? </Text>
-                                <TouchableOpacity onPress={handleGoBack}>
-                                    <Text style={styles.loginLink}>Go back</Text>
-                                </TouchableOpacity>
+                            {/* Logo */}
+                            <View style={styles.logoContainer}>
+                                <Image
+                                    source={require('@/assets/images/Logo.png')}
+                                    style={styles.logo}
+                                    resizeMode="contain"
+                                />
                             </View>
 
+                            {/* Header */}
+                            <View style={styles.headerContainer}>
+                                <Text style={styles.title}>Create account</Text>
+                                <Text style={styles.subtitle}>
+                                    Get the best out of WanderOn by creating an account
+                                </Text>
+                            </View>
+
+                            {/* Form */}
+                            <View style={styles.formContainer}>
+                                {/* First Name */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>
+                                        First name <Text style={styles.required}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        style={[styles.input, firstNameError ? styles.inputError : null]}
+                                        placeholder="John"
+                                        placeholderTextColor="#D3D3D3"
+                                        value={firstName}
+                                        onChangeText={(text) => {
+                                            setFirstName(text);
+                                            if (firstNameError) setFirstNameError('');
+                                        }}
+                                    />
+                                    {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
+                                </View>
+
+                                {/* Last Name */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>
+                                        Last name <Text style={styles.required}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        style={[styles.input, lastNameError ? styles.inputError : null]}
+                                        placeholder="Doe"
+                                        placeholderTextColor="#D3D3D3"
+                                        value={lastName}
+                                        onChangeText={(text) => {
+                                            setLastName(text);
+                                            if (lastNameError) setLastNameError('');
+                                        }}
+                                    />
+                                    {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
+                                </View>
+
+                                {/* Age (optional) */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>Age</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="e.g. 25"
+                                        placeholderTextColor="#D3D3D3"
+                                        keyboardType="numeric"
+                                        value={age}
+                                        onChangeText={setAge}
+                                    />
+                                </View>
+
+                                {/* Phone */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>Phone</Text>
+                                    <View style={styles.phoneContainer}>
+                                        <TouchableOpacity
+                                            style={styles.countryCode}
+                                            onPress={() => setIsCountryCodeModalVisible(true)}
+                                        >
+                                            <Text style={styles.countryCodeText}>{selectedCountryCode}</Text>
+                                            <Ionicons name="chevron-down" size={16} color="#666" />
+                                        </TouchableOpacity>
+
+                                        <TextInput
+                                            style={[styles.phoneInput, phoneError ? styles.inputError : null]}
+                                            placeholder="1234567890"
+                                            placeholderTextColor="#D3D3D3"
+                                            value={phone}
+                                            onChangeText={(text) => {
+                                                setPhone(text);
+                                                if (phoneError) setPhoneError('');
+                                            }}
+                                            onBlur={() => {
+                                                if (!phone.trim()) return;
+                                                const phoneRegex = /^[0-9]{10}$/;
+                                                if (!phoneRegex.test(phone.trim())) {
+                                                    setPhoneError('Please enter a valid phone number');
+                                                }
+                                            }}
+                                            keyboardType="number-pad"
+                                        />
+                                    </View>
+                                    {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
+                                </View>
+
+                                {/* Country Code Modal */}
+                                <Modal
+                                    visible={isCountryCodeModalVisible}
+                                    transparent
+                                    animationType="slide"
+                                >
+                                    <View style={styles.modalContainer}>
+                                        <FlatList
+                                            data={countryCodes}
+                                            keyExtractor={(item) => item.code}
+                                            renderItem={({ item }) => (
+                                                <TouchableOpacity
+                                                    style={styles.modalItem}
+                                                    onPress={() => {
+                                                        setSelectedCountryCode(item.code);
+                                                        setIsCountryCodeModalVisible(false);
+                                                    }}
+                                                >
+                                                    <Text style={styles.modalText}>
+                                                        {item.country} ({item.code})
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        />
+                                    </View>
+                                </Modal>
+
+                                {/* Email */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>
+                                        Email <Text style={styles.required}>*</Text>
+                                    </Text>
+                                    <TextInput
+                                        style={[styles.input, emailError ? styles.inputError : null]}
+                                        placeholder="johnuser@gmail.com"
+                                        placeholderTextColor="#D3D3D3"
+                                        value={email}
+                                        onChangeText={(text) => {
+                                            setEmail(text);
+                                            if (emailError) setEmailError('');
+                                        }}
+                                        onBlur={() => {
+                                            if (!email.trim()) return;
+                                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                                            if (!emailRegex.test(email.trim())) {
+                                                setEmailError('Please enter a valid email address');
+                                            }
+                                        }}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                    />
+                                    {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+                                </View>
+
+                                {/* Password */}
+                                <View style={styles.inputContainer}>
+                                    <Text style={styles.inputLabel}>
+                                        Password <Text style={styles.required}>*</Text>
+                                    </Text>
+                                    <View style={styles.passwordContainer}>
+                                        <TextInput
+                                            style={[styles.passwordInput, passwordError ? styles.inputError : null]}
+                                            placeholder="••••••••"
+                                            placeholderTextColor="#D3D3D3"
+                                            secureTextEntry={!showPassword}
+                                            value={password}
+                                            onChangeText={(text) => {
+                                                setPassword(text);
+                                                if (passwordError) setPasswordError('');
+                                            }}
+                                            autoCapitalize="none"
+                                        />
+                                        <TouchableOpacity
+                                            style={styles.eyeIcon}
+                                            onPress={() => setShowPassword(!showPassword)}
+                                        >
+                                            <Ionicons
+                                                name={showPassword ? 'eye-off' : 'eye'}
+                                                size={20}
+                                                color="#666"
+                                            />
+                                        </TouchableOpacity>
+                                    </View>
+                                    {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+                                </View>
+
+                                {/* Terms */}
+                                <View style={styles.termsContainer}>
+                                    <TouchableOpacity
+                                        style={styles.checkbox}
+                                        onPress={() => setAcceptTerms(!acceptTerms)}
+                                    >
+                                        <Ionicons
+                                            name={acceptTerms ? 'checkbox' : 'square-outline'}
+                                            size={20}
+                                            color={acceptTerms ? '#007AFF' : '#666'}
+                                        />
+                                    </TouchableOpacity>
+                                    <Text style={styles.termsText}>
+                                        I accept{' '}
+                                        <Text style={styles.termsLink}>terms and condition</Text>
+                                    </Text>
+                                </View>
+
+                                {/* Button */}
+                                <TouchableOpacity
+                                    style={[styles.createButton, isLoading && styles.createButtonDisabled]}
+                                    onPress={handleSignup}
+                                    disabled={isLoading}
+                                >
+                                    <Text style={styles.createButtonText}>
+                                        {isLoading ? 'Creating Account...' : 'Create Account'}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* Login */}
+                                <View style={styles.loginContainer}>
+                                    <Text style={styles.loginText}>Already have an account? </Text>
+                                    <TouchableOpacity onPress={handleGoBack}>
+                                        <Text style={styles.loginLink}>Go back</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </View>
                     </View>
                 </ScrollView>
@@ -434,24 +433,49 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1, backgroundColor: '#f5f7fa' },
     keyboardAvoidingView: { flex: 1 },
     scrollView: { flex: 1 },
-    scrollContent: { flexGrow: 1 },
-    content: { paddingHorizontal: 24, paddingBottom: 40 },
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingVertical: 24,
+    },
 
-    backButton: { marginTop: 20, marginBottom: 20 },
+    // Center wrapper
+    content: {
+        flex: 1,
+        alignItems: 'center',
+        paddingHorizontal: 24,
+    },
+
+    // Card similar to login
+    card: {
+        width: '100%',
+        maxWidth: 480,
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        paddingHorizontal: 24,
+        paddingVertical: 28,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+
+    backButton: { marginBottom: 12, alignSelf: 'flex-start' },
 
     logoContainer: { alignItems: 'center', marginBottom: 20 },
     logo: { width: 80, height: 80 },
 
-    headerContainer: { alignItems: 'center', marginBottom: 30 },
+    headerContainer: { alignItems: 'center', marginBottom: 24 },
     title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
     subtitle: { fontSize: 16, color: '#666', textAlign: 'center' },
 
     formContainer: { flex: 1 },
 
-    inputContainer: { marginBottom: 20 },
+    inputContainer: { marginBottom: 16 },
     inputLabel: { fontSize: 14, fontWeight: '500', color: '#333', marginBottom: 8 },
     required: { color: '#ff4444' },
 
@@ -505,7 +529,7 @@ const styles = StyleSheet.create({
     passwordInput: { flex: 1, paddingHorizontal: 16, paddingVertical: 12, fontSize: 16 },
     eyeIcon: { paddingHorizontal: 16 },
 
-    termsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+    termsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
     checkbox: { marginRight: 12 },
     termsText: { fontSize: 14, color: '#666' },
     termsLink: { color: '#007AFF', textDecorationLine: 'underline' },
@@ -515,7 +539,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingVertical: 16,
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: 16,
     },
     createButtonDisabled: { backgroundColor: '#B0C4DE' },
     createButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
